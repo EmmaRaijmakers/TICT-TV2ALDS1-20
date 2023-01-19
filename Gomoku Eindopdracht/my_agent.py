@@ -23,6 +23,14 @@ class my_player:
         """
         self.black = black_
 
+    def rollout(self, leaf) -> float:
+        #TODO implement this function
+        return 0.0
+
+    def backup_value(self, leaf, val):
+        #TODO implement this function
+        print('')
+
     def move(
         self, state: GameState, last_move: Move, max_time_to_move: int = 1000
     ) -> Move:
@@ -48,14 +56,14 @@ class my_player:
         while cur_time < max_time:
             n_leaf = random.choice(moves)
 
-            #TODO val <- rollout(n_leaf)
-            #TODO backup_value(n_leaf, val)
+            val = self.rollout(n_leaf)
+            self.backup_value(n_leaf, val)
 
-            # if val > cur_best_value:
-            #   cur_best_value = val
-            #   cur_move = n_leaf
+            if val > cur_best_value:
+              cur_best_value = val
+              cur_move = n_leaf
 
-            #TODO remove n_leaf from moves
+            moves.remove(n_leaf)
 
             cur_time = time.time()
 
