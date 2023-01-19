@@ -63,31 +63,31 @@ class GmGame:
         pygame.display.set_caption("Gomoku")
 
         WHITETOKENIMG = pygame.image.load(
-            "assets/5row_white_smaller.png"
+            "Gomoku Eindopdracht/assets/5row_white_smaller.png"
         ).convert_alpha()
         WHITETOKENIMG = pygame.transform.smoothscale(
             WHITETOKENIMG, (GmGame.SPACESIZE, GmGame.SPACESIZE)
         )
         BLACKTOKENIMG = pygame.image.load(
-            "assets/5row_black_smaller.png"
+            "Gomoku Eindopdracht/assets/5row_black_smaller.png"
         ).convert_alpha()
         BLACKTOKENIMG = pygame.transform.smoothscale(
             BLACKTOKENIMG, (GmGame.SPACESIZE, GmGame.SPACESIZE)
         )
-        MARKERIMG = pygame.image.load("assets/marker.png").convert_alpha()
+        MARKERIMG = pygame.image.load("Gomoku Eindopdracht/assets/marker.png").convert_alpha()
         MARKERIMG = pygame.transform.smoothscale(
             MARKERIMG, (GmGame.SPACESIZE, GmGame.SPACESIZE)
         )
-        BOARDIMG = pygame.image.load("assets/gomoku_board.png").convert_alpha()
+        BOARDIMG = pygame.image.load("Gomoku Eindopdracht/assets/gomoku_board.png").convert_alpha()
         BOARDIMG = pygame.transform.smoothscale(
             BOARDIMG, (GmGame.SPACESIZE, GmGame.SPACESIZE)
         )
 
         HUMANWINNERIMG = pygame.image.load(
-            "assets/5row_blackwinner.png"
+            "Gomoku Eindopdracht/assets/5row_blackwinner.png"
         ).convert_alpha()
         COMPUTERWINNERIMG = pygame.image.load(
-            "assets/5row_whitewinner.png"
+            "Gomoku Eindopdracht/assets/5row_whitewinner.png"
         ).convert_alpha()
         # make the winner impage small, such that we can cramp it in the topleft
         HUMANWINNERIMG = pygame.transform.smoothscale(
@@ -96,7 +96,7 @@ class GmGame:
         COMPUTERWINNERIMG = pygame.transform.smoothscale(
             COMPUTERWINNERIMG, (5 * GmGame.SPACESIZE, 2 * GmGame.SPACESIZE)
         )
-        TIEWINNERIMG = pygame.image.load("assets/5row_tie.png").convert_alpha()
+        TIEWINNERIMG = pygame.image.load("Gomoku Eindopdracht/assets/5row_tie.png").convert_alpha()
         WINNERRECT = HUMANWINNERIMG.get_rect()
         # WINNERRECT.center = (int(WINDOWWIDTH / 2), int(WINDOWHEIGHT / 2))
         WINNERRECT.left = 0
