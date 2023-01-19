@@ -1,5 +1,7 @@
 import random
 import gomoku
+import time
+import numpy as np
 from gomoku import Board, Move, GameState
 
 
@@ -32,8 +34,32 @@ class my_player:
         """
         #TODO add MCTS
 
+        max_time = time.time() + max_time_to_move
+        cur_time = time.time()
+
+        cur_best_value = - np.inf
+
+        #this outside of while-loop because only needed to be done once
         moves = gomoku.valid_moves(state)
-        return random.choice(moves)
+
+        #choose random move as base (if out of time, at least a move)
+        cur_move = random.choice(moves)
+
+        while cur_time < max_time:
+            n_leaf = random.choice(moves)
+
+            #TODO val <- rollout(n_leaf)
+            #TODO backup_value(n_leaf, val)
+
+            # if val > cur_best_value:
+            #   cur_best_value = val
+            #   cur_move = n_leaf
+
+            #TODO remove n_leaf from moves
+
+            cur_time = time.time()
+
+        return cur_move
 
     def id(self) -> str:
         """Please return a string here that uniquely identifies your submission e.g., "name (student_id)" """
