@@ -23,6 +23,9 @@ class my_player:
         """
         self.black = black_
 
+    def find_spot_to_expand(self, moves):
+        return random.choice(moves)
+
     def rollout(self, leaf) -> float:
         #TODO implement this function
         return 0.0
@@ -40,7 +43,7 @@ class my_player:
         3) the available moves you can play (this is a special service we provide ;-) )
         4) the maximum time until the agent is required to make a move in milliseconds [diverging from this will lead to disqualification].
         """
-        #TODO add MCTS
+        #TODO add MCTS + test this function
 
         max_time = time.time() + max_time_to_move
         cur_time = time.time()
@@ -54,7 +57,8 @@ class my_player:
         cur_move = random.choice(moves)
 
         while cur_time < max_time:
-            n_leaf = random.choice(moves)
+            # n_leaf = random.choice(moves)
+            n_leaf = self.find_spot_to_expand(moves)
 
             val = self.rollout(n_leaf)
             self.backup_value(n_leaf, val)
