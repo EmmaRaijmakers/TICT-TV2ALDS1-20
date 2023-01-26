@@ -26,9 +26,11 @@ class my_player:
         """
         self.black = black_
 
+    #This function has a time complexity of
     def find_spot_to_expand(self, moves):
         return random.choice(moves)
 
+    #This function has a time complexity of O(n) because it places moves until (worst case) the board is filled 
     def rollout(self, leaf, moves) -> float:
         #TODO Test this function
 
@@ -91,10 +93,12 @@ class my_player:
         #niet nodig ??
         return 0.5
 
+    #This function has a time complexity of
     def backup_value(self, leaf, val):
         #TODO implement this function
         print('')
 
+    #This function has a time complexity of
     def move(
         self, state: GameState, last_move: Move, max_time_to_move: int = 1000
     ) -> Move:
@@ -136,6 +140,7 @@ class my_player:
 
         return cur_move
 
+    #This function has a time complexity of O(1) because it instantly returns a value
     def id(self) -> str:
         """Please return a string here that uniquely identifies your submission e.g., "name (student_id)" """
         return "Emma Raijmakers (1784436)"
