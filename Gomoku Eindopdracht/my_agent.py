@@ -4,6 +4,87 @@ import time
 import numpy as np
 from gomoku import Board, Move, GameState
 import GmUtils
+import copy
+
+#TODO kijk of je copy's/deepcopy's weg kan halen -> of vervangen door snellere
+
+def play(game_state, move): ##move is a tuple indicating where the player to move is going to place a stone
+        if (game_state[1] % 2 == 1):
+            new_stone = 1 # black
+        else:
+            new_stone = 2 # white
+        new_game_state = ( copy.deepcopy(Board), game_state[1]+1)
+                                                    #row    #col
+        if(GmUtils.isValidMove(new_game_state[0], move[0], move[1])): #< TODO check of row en col niet omgewisseld moeten
+            GmUtils.addMoveToBoard(new_game_state[0], move, new_stone)
+        else:
+            return None #invalid move
+        return new_game_state
+
+class GameTreeNode3: 
+    def __init__(self, gstate, parentNode=None, last_move=None, valid_move_list=None):
+        self.state=gstate
+        self.finished, self.won = checkFinishedAndWhoWon(self.state)
+        self.parent=parentNode
+        self.children=[]
+        self.last_move = last_move
+        self.Q = 0 #number of wins
+        self.N = 0 #number of visits
+        self.valid_moves = valid_move_list
+        
+    def fully_expanded(self):
+        return len(self.children) is len(self.valid_moves)
+    
+    def expand(self,move,n_rollouts):
+        #when expanding a node with a new child node, we are not also going to perform a number of roll-outs.
+        #first, we create the new node:
+        new_state = play(self.state, move)
+        if(new_state is None):
+            return
+        new_valid_moves = copy.deepcopy(self.valid_moves)
+        new_valid_moves.remove(move)
+        new_node = GameTreeNode3(new_state, parentNode=self, last_move=move,valid_move_list=new_valid_moves)
+        #add it to the children:
+        self.children.append(new_node)
+        #and then perform a number of random roll-outs: random plays until the game finishes
+        for i in range(n_rollouts):
+            score = new_node.roll_out()
+            #and process the result (score) we get from this rollout
+            new_node.process_result(score)
+    
+    def roll_out(self):
+        #rollouts are quite simple
+        #when the node respresents a game state of a game that's finished, we immediately return the result
+        if(self.finished):
+            if(self.won == 1):
+                return 1
+            elif(self.won == 2):
+                return -1
+            else:
+                return 0
+        #else we play moves in on the remaining open fields
+        moves = copy.deepcopy(self.valid_moves)
+        random.shuffle(moves)
+        new_state = self.state
+        for move in moves:
+            new_state = play(new_state, move)
+            fin, whowon = checkFinishedAndWhoWon(new_state)
+            #until the game finishes, and return the score:
+            if(fin):
+                if(whowon == 1):
+                    return 1
+                elif(whowon == 2):
+                    return -1
+                else:
+                    return 0
+        
+    def process_result(self,rollout_result):
+        #then we increase Q by the score, and N by 1
+        self.Q+=rollout_result
+        self.N+=1
+        #and do the same, recursively, for its ancestors
+        if(self.parent is not None):
+            self.parent.process_result(rollout_result)
 
 
 class my_player:
@@ -28,7 +109,10 @@ class my_player:
 
     #This function has a time complexity of
     def find_spot_to_expand(self, moves):
-        return random.choice(moves)
+        if len(moves) == 1:
+            return moves[0]
+        else:
+            return random.choice(moves)
 
     #This function has a time complexity of O(n) because it places moves until (worst case) the board is filled 
     def rollout(self, leaf, moves) -> float:
