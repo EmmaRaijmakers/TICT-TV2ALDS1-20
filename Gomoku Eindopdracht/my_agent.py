@@ -6,7 +6,7 @@ from gomoku import Board, Move, GameState
 import GmUtils
 import copy
 
-#TODO kijk of je copy's/deepcopy's weg kan halen -> of vervangen door snellere
+#TODO kijk of je copy's/deepcopy's weg kan halen -> of vervangen door snellere TODO voor onderzoek ook
 
 #This function has a time complexity of O(n^2) because the board (2D array) needs to be copied (maybe faster depending on the deepcopy function), 
 #the other code is O(n) because it happens instantly
@@ -30,7 +30,7 @@ class GameTreeNode3:
         self.state=gstate
         self.finished, self.won = checkFinishedAndWhoWon(self.state)
         self.parent=parentNode
-        self.children=[]
+        self.children=[] #TODO voor onderzoek probeer andere container
         self.last_move = last_move
         self.Q = 0 #number of wins
         self.N = 0 #number of visits
@@ -49,6 +49,8 @@ class GameTreeNode3:
     def fully_expanded(self):
         return len(self.children) is len(self.valid_moves)
     
+
+    #This function has a time complexity of TODO
     def expand(self,move,n_rollouts):
         #when expanding a node with a new child node, we are not also going to perform a number of roll-outs.
         #first, we create the new node:
@@ -66,7 +68,7 @@ class GameTreeNode3:
             #and process the result (score) we get from this rollout
             new_node.process_result(score)
 
-    #This function has a time complexity of O(n) because the valid moves need to be copied and shuffled (again maybe less depending on the funtions) 
+    #This function has a time complexity of O(n) because the valid moves need to be copied and shuffled (again maybe less depending on the functions) 
     #and moves need to be played until someone wins (worst case until the whole board is full/all valid moves are played), which is also O(n).
     #Furthermore, the TODO check who won function is called which has a time complexity of TODO
     #This results in O(n) + O(n) + TODO which is a time complexity of O(n)
@@ -97,7 +99,7 @@ class GameTreeNode3:
                     return 0
         
     #This function has a time complexity of O(1) because calculations happen instantly
-    def process_result(self,rollout_result):
+    def process_result(self,rollout_result): #TODO voor onderzoek probeer formule uit reader bij opdracht
         #then we increase Q by the score, and N by 1
         self.Q+=rollout_result
         self.N+=1
