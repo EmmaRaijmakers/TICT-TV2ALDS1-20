@@ -8,6 +8,8 @@ import copy
 
 #TODO kijk of je copy's/deepcopy's weg kan halen -> of vervangen door snellere
 
+#This function has a time complexity of O(n^2) because the board (2D array) needs to be copied (maybe faster depending on the deepcopy function), 
+#the other code is O(n) because it happens instantly
 def play(game_state, move): ##move is a tuple indicating where the player to move is going to place a stone
         if (game_state[1] % 2 == 1):
             new_stone = 1 # black
