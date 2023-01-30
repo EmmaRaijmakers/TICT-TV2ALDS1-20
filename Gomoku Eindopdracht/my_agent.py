@@ -28,7 +28,7 @@ class GameTreeNode3:
     def __init__(self, gstate, parentNode=None, last_move=None, valid_move_list=None, black_: bool = True):
         """Constructor for the player."""
         self.state=gstate
-        self.finished, self.won = checkFinishedAndWhoWon(self.state)
+        self.finished, self.won = checkFinishedAndWhoWon(self.state) #<- TODO update this function
         self.parent=parentNode
         self.children=[] #TODO voor onderzoek probeer andere container
         self.last_move = last_move
@@ -84,6 +84,7 @@ class GameTreeNode3:
                 return 0
         #else we play moves in on the remaining open fields
         moves = copy.deepcopy(self.valid_moves) #TODO is hier de copy functie voldoende??? ja?
+        #TODO voor onderzoek zetten niet random, maar bv rondom vorige zet
         random.shuffle(moves) #TODO wat is time complexity van shuffle functie -> opzoeken
         new_state = self.state
         for move in moves:
@@ -101,10 +102,10 @@ class GameTreeNode3:
     #This function has a time complexity of O(1) because calculations happen instantly
     def process_result(self,rollout_result): #TODO voor onderzoek probeer formule uit reader bij opdracht
         #then we increase Q by the score, and N by 1
-        self.Q+=rollout_result
+        self.Q+=rollout_result #TODO check even of klopt met algoritme 24, als beurt van tegenstander dan - result, ja add dit??
         self.N+=1
         #and do the same, recursively, for its ancestors
-        if(self.parent is not None):
+        if(self.parent is not None): 
             self.parent.process_result(rollout_result)
 
     #This function has a time complexity of TODO
@@ -118,8 +119,8 @@ class GameTreeNode3:
         4) the maximum time until the agent is required to make a move in milliseconds [diverging from this will lead to disqualification].
         """
         
-        #add function calls to other functions here
-        #add system to make sure not to exceed max time, add max time to expand function??
+        #TODO add function calls to other functions here
+        #TODO add system to make sure not to exceed max time, add max time to expand function??
         
         moves = gomoku.valid_moves(state)
         return random.choice(moves)
