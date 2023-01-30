@@ -56,10 +56,10 @@ class GameTreeNode3:
             return
         new_valid_moves = copy.deepcopy(self.valid_moves)
         new_valid_moves.remove(move)
-        new_node = GameTreeNode3(new_state, parentNode=self, last_move=move,valid_move_list=new_valid_moves)
-        #add it to the children:
-        self.children.append(new_node)
-        #and then perform a number of random roll-outs: random plays until the game finishes
+        new_node = GameTreeNode3(new_state, parentNode=self, last_move=move,valid_move_list=new_valid_moves, black_=self.black) #TODO hier self.black??
+        #add it to the children:                                                                                                #of tegenovergestelde?
+        self.children.append(new_node)                                                                                          #of maakt niet uit (gebeurd al in andere functie?)
+        #and then perform a number of random roll-outs: random plays until the game finishes                                    #in andere functies aanpassen naar self.black??
         for i in range(n_rollouts):
             score = new_node.roll_out()
             #and process the result (score) we get from this rollout
@@ -91,6 +91,7 @@ class GameTreeNode3:
                 else:
                     return 0
         
+    #This function has a time complexity of O(1) because calculations happen instantly
     def process_result(self,rollout_result):
         #then we increase Q by the score, and N by 1
         self.Q+=rollout_result
