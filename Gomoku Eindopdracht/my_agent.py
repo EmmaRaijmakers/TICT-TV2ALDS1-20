@@ -45,6 +45,7 @@ class GameTreeNode3:
         """
         self.black = black_
         
+    #This function has a time complexity of O(1) because it instantly calculates and returns a value
     def fully_expanded(self):
         return len(self.children) is len(self.valid_moves)
     
