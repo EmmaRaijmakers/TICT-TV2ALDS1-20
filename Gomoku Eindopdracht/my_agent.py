@@ -64,7 +64,11 @@ class GameTreeNode3:
             score = new_node.roll_out()
             #and process the result (score) we get from this rollout
             new_node.process_result(score)
-    
+
+    #This function has a time complexity of O(n) because the valid moves need to be copied and shuffled (again maybe less depending on the funtions) 
+    #and moves need to be played until someone wins (worst case until the whole board is full/all valid moves are played), which is also O(n).
+    #Furthermore, the TODO check who won function is called which has a time complexity of TODO
+    #This results in O(n) + O(n) + TODO which is a time complexity of O(n)
     def roll_out(self):
         #rollouts are quite simple
         #when the node respresents a game state of a game that's finished, we immediately return the result
@@ -76,8 +80,8 @@ class GameTreeNode3:
             else:
                 return 0
         #else we play moves in on the remaining open fields
-        moves = copy.deepcopy(self.valid_moves)
-        random.shuffle(moves)
+        moves = copy.deepcopy(self.valid_moves) #TODO is hier de copy functie voldoende??? ja?
+        random.shuffle(moves) #TODO wat is time complexity van shuffle functie -> opzoeken
         new_state = self.state
         for move in moves:
             new_state = play(new_state, move)
