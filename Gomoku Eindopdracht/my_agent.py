@@ -51,7 +51,7 @@ class GameTreeNode3:
     
 
     #This function has a time complexity of TODO
-    def expand(self,move,n_rollouts):
+    def expand(self,move,n_rollouts): #TODO number of expantions voor onderzoek
         #when expanding a node with a new child node, we are not also going to perform a number of roll-outs.
         #first, we create the new node:
         new_state = play(self.state, move)
@@ -106,6 +106,23 @@ class GameTreeNode3:
         #and do the same, recursively, for its ancestors
         if(self.parent is not None):
             self.parent.process_result(rollout_result)
+
+    #This function has a time complexity of TODO
+    def move(
+        self, state: GameState, last_move: Move, max_time_to_move: int = 1000
+    ) -> Move:
+        """This is the most important method: the agent will get:
+        1) the current state of the game
+        2) the last move by the opponent
+        3) the available moves you can play (this is a special service we provide ;-) )
+        4) the maximum time until the agent is required to make a move in milliseconds [diverging from this will lead to disqualification].
+        """
+        
+        #add function calls to other functions here
+        #add system to make sure not to exceed max time, add max time to expand function??
+        
+        moves = gomoku.valid_moves(state)
+        return random.choice(moves)
 
     #This function has a time complexity of O(1) because it instantly returns a value
     def id(self) -> str:
