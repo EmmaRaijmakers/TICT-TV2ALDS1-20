@@ -23,8 +23,10 @@ def play(game_state, move): ##move is a tuple indicating where the player to mov
             return None #invalid move
         return new_game_state
 
-class GameTreeNode3: 
-    def __init__(self, gstate, parentNode=None, last_move=None, valid_move_list=None):
+class GameTreeNode3:
+
+    def __init__(self, gstate, parentNode=None, last_move=None, valid_move_list=None, black_: bool = True):
+        """Constructor for the player."""
         self.state=gstate
         self.finished, self.won = checkFinishedAndWhoWon(self.state)
         self.parent=parentNode
@@ -33,6 +35,15 @@ class GameTreeNode3:
         self.Q = 0 #number of wins
         self.N = 0 #number of visits
         self.valid_moves = valid_move_list
+
+        self.black = black_
+
+    def new_game(self, black_: bool):
+        """At the start of each new game you will be notified by the competition.
+        this method has a boolean parameter that informs your agent whether you
+        will play black or white.
+        """
+        self.black = black_
         
     def fully_expanded(self):
         return len(self.children) is len(self.valid_moves)
@@ -87,6 +98,11 @@ class GameTreeNode3:
         #and do the same, recursively, for its ancestors
         if(self.parent is not None):
             self.parent.process_result(rollout_result)
+
+    #This function has a time complexity of O(1) because it instantly returns a value
+    def id(self) -> str:
+        """Please return a string here that uniquely identifies your submission e.g., "name (student_id)" """
+        return "Emma Raijmakers (1784436)"
 
 
 class my_player:
