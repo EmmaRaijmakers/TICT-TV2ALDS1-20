@@ -31,6 +31,7 @@ def play(game_state, move): ##move is a tuple indicating where the player to mov
             return None #invalid move
         return new_game_state
 
+#This function has a time complexity of TODO
 def calculate_best_move(node):
     best_value = node.children[0].Q / node.children[0].N
     best_move = node.children[0].last_move #TODO wat is last move hier en kan dat gebruikt worden?
