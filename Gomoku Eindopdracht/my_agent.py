@@ -6,6 +6,12 @@ from gomoku import Board, Move, GameState
 import GmUtils
 import copy
 
+#TODO wanneer tree weer opnieuw maken/clearen?
+
+#TODO werkt alles ook als mijn AI als wit speelt?
+
+#TODO check of the algoritmes van de opracht kloppen met die in de reader
+
 #TODO kijk of je copy's/deepcopy's weg kan halen -> of vervangen door snellere TODO voor onderzoek ook
 
 #This function has a time complexity of O(n^2) because the board (2D array) needs to be copied (maybe faster depending on the deepcopy function), 
@@ -23,12 +29,21 @@ def play(game_state, move): ##move is a tuple indicating where the player to mov
             return None #invalid move
         return new_game_state
 
+def best_move(node):
+    best_value = node.children[0].Q / node.children[0].N
+    best_move = node.children[0].last_move
+    for i in range(1, len(node.children)):
+        current_value = node.children[0].Q / node.children[0].N
+        if (current_value > best_value):
+            best_value = current_value
+            best_move = node.children[i].last_move
+
 class GameTreeNode3:
 
     def __init__(self, gstate, parentNode=None, last_move=None, valid_move_list=None, black_: bool = True):
         """Constructor for the player."""
         self.state=gstate
-        self.finished, self.won = checkFinishedAndWhoWon(self.state) #<- TODO update this function
+        self.finished, self.won = GmUtils.isWinningMove(last_move, Board) #<- TODO als dit werkt kun je er ook gewoon false in gooien?
         self.parent=parentNode
         self.children=[] #TODO voor onderzoek probeer andere container
         self.last_move = last_move
@@ -89,7 +104,13 @@ class GameTreeNode3:
         new_state = self.state
         for move in moves:
             new_state = play(new_state, move)
-            fin, whowon = checkFinishedAndWhoWon(new_state)
+            fin = GmUtils.isWinningMove(move, Board)
+
+            if(new_state[1] % 2 == 0):
+                whowon = 1 #TODO klopt dit of omgedraait? als deelbaar door 2 dan vorige zet gedaan door zwart(1)
+            else:
+                whowon = 2
+
             #until the game finishes, and return the score:
             if(fin):
                 if(whowon == 1):
@@ -123,6 +144,14 @@ class GameTreeNode3:
         #TODO add system to make sure not to exceed max time, add max time to expand function??
         
         moves = gomoku.valid_moves(state)
+        #TODO randomify de moves lijst?? <- in onderzoek??
+
+        expand_value = 100
+
+        root = GameTreeNode3(state, valid_moves_list = moves) #TODO hier ook toevoegen of als black of white speelt
+        for mv in root.valid_moves:
+            root.expand(mv, expand_value)
+
         return random.choice(moves)
 
     #This function has a time complexity of O(1) because it instantly returns a value
