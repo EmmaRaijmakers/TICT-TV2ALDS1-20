@@ -14,6 +14,8 @@ import copy
 
 #TODO kijk of je copy's/deepcopy's weg kan halen -> of vervangen door snellere TODO voor onderzoek ook
 
+#TODO die ene formule toevoegen, waar? best_move?
+
 #This function has a time complexity of O(n^2) because the board (2D array) needs to be copied (maybe faster depending on the deepcopy function), 
 #the other code is O(n) because it happens instantly
 def play(game_state, move): ##move is a tuple indicating where the player to move is going to place a stone
@@ -29,14 +31,15 @@ def play(game_state, move): ##move is a tuple indicating where the player to mov
             return None #invalid move
         return new_game_state
 
-def best_move(node):
+def calculate_best_move(node):
     best_value = node.children[0].Q / node.children[0].N
-    best_move = node.children[0].last_move
+    best_move = node.children[0].last_move #TODO wat is last move hier en kan dat gebruikt worden?
     for i in range(1, len(node.children)):
         current_value = node.children[0].Q / node.children[0].N
         if (current_value > best_value):
             best_value = current_value
             best_move = node.children[i].last_move
+    return best_move
 
 class GameTreeNode3:
 
@@ -139,6 +142,11 @@ class GameTreeNode3:
         3) the available moves you can play (this is a special service we provide ;-) )
         4) the maximum time until the agent is required to make a move in milliseconds [diverging from this will lead to disqualification].
         """
+        #to make sure move is chosen within the given time 
+        safe_time = 100 #TODO voor onderzoek experiment met dit
+
+        max_time = time.time() + max_time_to_move - safe_time
+        cur_time = time.time() #TODO deze var niet nodig?
         
         #TODO add function calls to other functions here
         #TODO add system to make sure not to exceed max time, add max time to expand function??
@@ -146,13 +154,21 @@ class GameTreeNode3:
         moves = gomoku.valid_moves(state)
         #TODO randomify de moves lijst?? <- in onderzoek??
 
-        expand_value = 100
+        best_move = moves[0] #TODO niet nodig? wat als niet genoeg tijd voor 1 expand?
+
+        expand_value = 100 #TODO voor onderzoek, verander deze waarde
 
         root = GameTreeNode3(state, valid_moves_list = moves) #TODO hier ook toevoegen of als black of white speelt
+
         for mv in root.valid_moves:
             root.expand(mv, expand_value)
+            cur_time = time.time()
+            if cur_time > max_time:
+                break
 
-        return random.choice(moves)
+        best_move = calculate_best_move(root)
+
+        return best_move
 
     #This function has a time complexity of O(1) because it instantly returns a value
     def id(self) -> str:
