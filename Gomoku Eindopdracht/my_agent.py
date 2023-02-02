@@ -42,7 +42,7 @@ def calculate_best_move(node):
             best_move = node.children[i].last_move
     return best_move
 
-class GameTreeNode3:
+class my_agent: #TODO naam veranderen
 
     def __init__(self, gstate, parentNode=None, last_move=None, valid_move_list=None, black_: bool = True):
         """Constructor for the player."""
@@ -78,7 +78,7 @@ class GameTreeNode3:
             return
         new_valid_moves = copy.deepcopy(self.valid_moves)
         new_valid_moves.remove(move)
-        new_node = GameTreeNode3(new_state, parentNode=self, last_move=move,valid_move_list=new_valid_moves, black_=self.black) #TODO hier self.black??
+        new_node = my_agent(new_state, parentNode=self, last_move=move,valid_move_list=new_valid_moves, black_=self.black) #TODO hier self.black??
         #add it to the children:                                                                                                #of tegenovergestelde?
         self.children.append(new_node)                                                                                          #of maakt niet uit (gebeurd al in andere functie?)
         #and then perform a number of random roll-outs: random plays until the game finishes                                    #in andere functies aanpassen naar self.black??
@@ -117,9 +117,13 @@ class GameTreeNode3:
 
             #until the game finishes, and return the score:
             if(fin):
-                if(whowon == 1):
+                if(whowon == 1 and self.black):
                     return 1
-                elif(whowon == 2):
+                elif(whowon == 1 and not self.black):
+                    return -1
+                elif(whowon == 2 and not self.black):
+                    return 1
+                elif(whowon == 2 and self.black):
                     return -1
                 else:
                     return 0
@@ -127,7 +131,7 @@ class GameTreeNode3:
     #This function has a time complexity of O(1) because calculations happen instantly
     def process_result(self,rollout_result): #TODO voor onderzoek probeer formule uit reader bij opdracht
         #then we increase Q by the score, and N by 1
-        self.Q+=rollout_result #TODO check even of klopt met algoritme 24, als beurt van tegenstander dan - result, ja add dit??
+        self.Q+=rollout_result #TODO check even of klopt met algoritme 24, als beurt van tegenstander dan - result, ja add dit?? <- gedaan hierboven genoeg?
         self.N+=1
         #and do the same, recursively, for its ancestors
         if(self.parent is not None): 
@@ -153,13 +157,13 @@ class GameTreeNode3:
         #TODO add system to make sure not to exceed max time, add max time to expand function??
         
         moves = gomoku.valid_moves(state)
-        #TODO randomify de moves lijst?? <- in onderzoek??
+        random.shuffle(moves)
 
         best_move = moves[0] #TODO niet nodig? wat als niet genoeg tijd voor 1 expand?
 
         expand_value = 100 #TODO voor onderzoek, verander deze waarde
 
-        root = GameTreeNode3(state, valid_moves_list = moves) #TODO hier ook toevoegen of als black of white speelt
+        root = my_agent(state, valid_moves_list = moves) #TODO hier ook toevoegen of als black of white speelt
 
         for mv in root.valid_moves:
             root.expand(mv, expand_value)
