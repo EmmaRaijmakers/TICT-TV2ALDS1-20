@@ -3,8 +3,9 @@ import gomoku
 import time
 import numpy as np
 from gomoku import Board, Move, GameState
-import GmUtils
+from GmUtils import GmUtils
 import copy
+from GmQuickTests import GmQuickTests
 
 #TODO wanneer tree weer opnieuw maken/clearen?
 
@@ -23,7 +24,8 @@ def play(game_state, move): ##move is a tuple indicating where the player to mov
             new_stone = 1 # black
         else:
             new_stone = 2 # white
-        new_game_state = ( copy.deepcopy(Board), game_state[1]+1)
+        new_board = copy.deepcopy(game_state[0])
+        new_game_state = ( new_board, game_state[1]+1)
                                                     #row    #col
         if(GmUtils.isValidMove(new_game_state[0], move[0], move[1])): #< TODO check of row en col niet omgewisseld moeten
             GmUtils.addMoveToBoard(new_game_state[0], move, new_stone)
@@ -42,15 +44,20 @@ def calculate_best_move(node):
             best_move = node.children[i].last_move
     return best_move
 
-class my_agent: #TODO naam veranderen
+class my_agent:
 
     def __init__(self, gstate, parentNode=None, last_move=None, valid_move_list=None, black_: bool = True):
         """Constructor for the player."""
         self.state=gstate
-        self.finished, self.won = GmUtils.isWinningMove(last_move, Board) #<- TODO als dit werkt kun je er ook gewoon false in gooien?
+        self.board = gstate[0]
+        #print(self.board)
+        Board = gstate[0]
+        self.won = None #<- TODO als dit werkt kun je er ook gewoon false in gooien?
         self.parent=parentNode
         self.children=[] #TODO voor onderzoek probeer andere container
         self.last_move = last_move
+        print(Board)
+        self.finished = GmUtils.isWinningMove(last_move, Board)
         self.Q = 0 #number of wins
         self.N = 0 #number of visits
         self.valid_moves = valid_move_list
@@ -108,29 +115,41 @@ class my_agent: #TODO naam veranderen
         new_state = self.state
         for move in moves:
             new_state = play(new_state, move)
-            fin = GmUtils.isWinningMove(move, Board)
+            #print(Board)
+            fin_win = GmUtils.isWinningMove(move, new_state[0]) #TODO hier Board ipv new_state[0]?
 
             if(new_state[1] % 2 == 0):
-                whowon = 1 #TODO klopt dit of omgedraait? als deelbaar door 2 dan vorige zet gedaan door zwart(1)
+                whowon = 1 #TODO klopt dit of omgedraait? als deelbaar door 2 dan vorige zet gedaan door zwart(1), zwart == 2?!?
             else:
                 whowon = 2
 
+            #TODO gelijkspel geeft niet goed 0 terug??
+
             #until the game finishes, and return the score:
-            if(fin):
+            if(fin_win):
                 if(whowon == 1 and self.black):
+                    print(f'whowon: {whowon}, self.black: {self.black}')
                     return 1
                 elif(whowon == 1 and not self.black):
+                    print(f'whowon: {whowon}, self.black: {self.black}')
                     return -1
                 elif(whowon == 2 and not self.black):
+                    print(f'whowon: {whowon}, self.black: {self.black}')
                     return 1
                 elif(whowon == 2 and self.black):
+                    print(f'whowon: {whowon}, self.black: {self.black}')
                     return -1
                 else:
+                    print(f'whowon: {whowon}, self.black: {self.black}')
                     return 0
+
+            # if(len(moves) == 0):
+            #     return 0
         
     #This function has a time complexity of O(1) because calculations happen instantly
     def process_result(self,rollout_result): #TODO voor onderzoek probeer formule uit reader bij opdracht
         #then we increase Q by the score, and N by 1
+        print(rollout_result)
         self.Q+=rollout_result #TODO check even of klopt met algoritme 24, als beurt van tegenstander dan - result, ja add dit?? <- gedaan hierboven genoeg?
         self.N+=1
         #and do the same, recursively, for its ancestors
@@ -163,7 +182,7 @@ class my_agent: #TODO naam veranderen
 
         expand_value = 100 #TODO voor onderzoek, verander deze waarde
 
-        root = my_agent(state, valid_moves_list = moves) #TODO hier ook toevoegen of als black of white speelt
+        root = my_agent(state, last_move=self.last_move, valid_move_list=moves) #TODO hier ook toevoegen of als black of white speelt
 
         for mv in root.valid_moves:
             root.expand(mv, expand_value)
@@ -256,6 +275,7 @@ class my_player:
                 GmUtils.addMoveToBoard(current_board, action, 1)  
 
             #check if the game is won
+            # print(current_board)
             win = GmUtils.isWinningMove(action, current_board)
 
             #if win return the right value based on which player won (or neither)
@@ -322,3 +342,27 @@ class my_player:
     def id(self) -> str:
         """Please return a string here that uniquely identifies your submission e.g., "name (student_id)" """
         return "Emma Raijmakers (1784436)"
+
+def testing():
+
+    gamestate = (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 0],
+                    [2, 0, 0, 0, 0, 0, 0],
+                ]
+            ),
+            5,
+        )
+
+    valid_moves = gomoku.valid_moves(gamestate)
+
+    p1 = my_agent(gamestate, parentNode=None, last_move=(6,6), valid_move_list=valid_moves, black_=True)
+    GmQuickTests.testWinSelf1(p1)
+
+testing()
