@@ -91,6 +91,7 @@ class EmmaPlayer:
         self.black = black_
 
     def move(self, state: GameState, last_move: Move, max_time_to_move: int = 1000) -> Move:
+        print("move")
         """This is the most important method: the agent will get:
         1) the current state of the game
         2) the last move by the opponent
@@ -109,37 +110,48 @@ class EmmaPlayer:
 
         # expand tree in max time
         safe_time = 100  # TODO voor onderzoek experiment met dit
-        max_time = time.time() + max_time_to_move - safe_time
+        max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
         while time.time() < max_time:
-            self.expand_base_node(state, moves)
+            copy_board = copy.deepcopy(state[0])
+            copy_gamestate = copy_board, state[1]
+            copy_moves = copy.deepcopy(moves)
+            self.find_spot_to_extend(copy_gamestate, copy_moves, self.base_node)
 
         best_move, best_child = self.calculate_best_move(self.base_node)
         self.base_node = best_child
         return best_move
 
-    def expand_base_node(self, state: GameState, moves: [Move]) -> None:
-        # Copy current board and create a new game state
-        new_board = copy.deepcopy(state[0])
-        new_gamestate = GameState(tuple(new_board, state[1])) #TODO hier zit een error over tuple?
+    def find_spot_to_extend(self, state: GameState, moves: [Move], current_node: Node) -> None:
+        print("expand_base_node")
+
+        new_move = random.choice(moves) #TODO hier niet random maar een slimmere techniek vinden
+
+
+        children_moves = []
+
+        for child in self.base_node.children:
+            children_moves.append(child.last_move)
+        print(f'{children_moves} children movesfjdskfjdskfjdsfkjsd')
+
+
+        #TODO wat als in een finished node komt? of als de tree volledig extended is?
+        if (new_move not in children_moves) and (len(moves) > 0):
+            new_node = Node(state, self.black, new_move, current_node)
+            moves.remove(new_move)
+            self.roll_down(new_node, moves)
+        elif len(moves) > 0:
+            new_base_node = self.base_node.children[children_moves.index(new_move)] #move and child index are the same
+            moves.remove(new_move)
+            self.find_spot_to_extend(new_base_node.current_gamestate, moves, new_base_node)
 
         # Function to roll down one node to the bottom
-        self.roll_down(new_gamestate, moves)
+        #self.roll_down(new_gamestate, moves) #TODO choose node to extend
 
-    def rollout(self, valid_moves: list[Move], game_state: GameState, max_time_ms: int):
-        print("not implemented")
-        # krijg tijd om te expanden. Daarna simuleren voor max tijd
-        # een calculate best move functie kan de dan base node pakken om te bereken wat de beste move is.
+    #def roll_out
 
-        # for valid moves
-        #   expand down to bottom.
-        # if no more valid moves but time left do into child nodes and check for valid moves
-        # if no more valid moves left in children and its children mark as done even if time has not elapsed
-        # return
-
-    def roll_down(self, state: GameState, moves: [Move]) -> None:
-        print("roll down, not implemented")
-
+    def roll_down(self, node_to_roll_down:Node, moves: [Move]) -> None:
+        print("roll_down")
         # do move, get if valid, has won and new gamestate
 
         # if won return and update node q and n
@@ -151,21 +163,24 @@ class EmmaPlayer:
         # node child met move x, check result, new child of child met random move y, check result ....
 
         is_winning = False
-        current_state = state
-        current_moves = moves
-        current_node = self.base_node
+        #current_state = state
+        current_moves = copy.copy(moves) #TODO copy nodig hier??
+        current_node = node_to_roll_down
 
-        while not is_winning or len(current_moves) > 0:
+        while (not is_winning) and len(current_moves) > 0:
             # Choose a random move from the current valid moves and play that move
             new_move = random.choice(current_moves)
-            is_valid, is_winning, new_state = gomoku.move(current_state, new_move)
+
+            is_valid, is_winning, new_state = gomoku.move(current_node.current_gamestate, new_move)
 
             # Create a new node for that move and connect it to the current node
-            new_node = Node(new_state, False if new_state[2] % 2 else True, new_move, current_node)
+            new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
             current_node.children.append(new_node)
+            new_node.parent = current_node
+            print(current_node.children)
 
-            moves.remove(new_move)
-            current_state = new_state
+            current_moves.remove(new_move)
+            #current_state = new_state
             current_node = new_node
 
         current_node.N +=1
@@ -173,7 +188,7 @@ class EmmaPlayer:
         if not is_winning:
             # Draw
             current_node.Q += 0 #TODO doet niks dus weghalen?
-        elif current_state[2] % 2 == self.black:
+        elif current_node.black == self.black:
             # Win for own player
             current_node.Q += 1
         else:
@@ -183,21 +198,28 @@ class EmmaPlayer:
         self.backup_value(current_node)
 
     def backup_value(self, node: Node) -> None:
+        print("backup_value")
         if node.parent is not None:
+            print("backup_valuefsdjfkdsfjkahfgjksg")
             node.parent.Q += node.Q
             node.parent.N += 1
             self.backup_value(node.parent)
 
     """Calculate best move based on the available moves."""
     def calculate_best_move(self, node: Node) -> Tuple[Move, Node]:
+        print("calculate_best_move")
         best_value = float('-inf')
         best_child = None
+
+        print(f'{node.children} dit is deze zooi')
 
         for child in node.children:
             current_value = child.Q / child.N
             if current_value > best_value:
                 best_value = current_value
                 best_child = child
+
+            print(best_value)
 
         return best_child.last_move, best_child
 
