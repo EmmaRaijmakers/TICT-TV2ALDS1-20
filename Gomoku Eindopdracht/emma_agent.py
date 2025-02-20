@@ -112,7 +112,8 @@ class EmmaPlayer:
         safe_time = 100  # TODO voor onderzoek experiment met dit
         max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
-        while time.time() < max_time:
+        for i in range(0,10000): # for debugging
+        # while time.time() < max_time:
             copy_board = copy.deepcopy(state[0])
             copy_gamestate = copy_board, state[1]
             copy_moves = copy.deepcopy(moves)
@@ -127,7 +128,6 @@ class EmmaPlayer:
 
         new_move = random.choice(moves) #TODO hier niet random maar een slimmere techniek vinden
 
-
         children_moves = []
 
         for child in self.base_node.children:
@@ -137,7 +137,22 @@ class EmmaPlayer:
 
         #TODO wat als in een finished node komt? of als de tree volledig extended is?
         if (new_move not in children_moves) and (len(moves) > 0):
-            new_node = Node(state, self.black, new_move, current_node)
+
+            is_valid, is_winning, new_state = gomoku.move(current_node.current_gamestate, new_move)
+
+            # if win break (dus binnen 1 move, gelijk uitvoeren!)
+
+            if is_winning:
+                print(f'{new_move} wins!')
+                # stop
+
+            # if not valid panic
+
+
+
+            # TODO hier nog een move doen? en wat als die move meteen een win is?
+            new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
+            current_node.children.append(new_node)
             moves.remove(new_move)
             self.roll_down(new_node, moves)
         elif len(moves) > 0:
@@ -149,7 +164,7 @@ class EmmaPlayer:
         #self.roll_down(new_gamestate, moves) #TODO choose node to extend
 
     #def roll_out
-
+                                                #TODO hier moves eruit halen?, first move toevoegen en gelijk uitvoeren
     def roll_down(self, node_to_roll_down:Node, moves: [Move]) -> None:
         print("roll_down")
         # do move, get if valid, has won and new gamestate
@@ -164,7 +179,9 @@ class EmmaPlayer:
 
         is_winning = False
         #current_state = state
-        current_moves = copy.copy(moves) #TODO copy nodig hier??
+        #current_moves = copy.copy(moves) #TODO copy nodig hier??
+        # current_moves = moves  # TODO copy nodig hier??
+        current_moves = gomoku.valid_moves(node_to_roll_down.current_gamestate) # TODO tijdelijk fix, kijk of het anders kan (vergeet niet dat copy ook heel veel tijd kost)
         current_node = node_to_roll_down
 
         while (not is_winning) and len(current_moves) > 0:
@@ -176,8 +193,10 @@ class EmmaPlayer:
             # Create a new node for that move and connect it to the current node
             new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
             current_node.children.append(new_node)
-            new_node.parent = current_node
-            print(current_node.children)
+
+            print(f'{current_node.children} HIEERRRRRRRRRR')
+
+            # new_node.parent = current_node (is overbodig)
 
             current_moves.remove(new_move)
             #current_state = new_state
@@ -199,11 +218,14 @@ class EmmaPlayer:
 
     def backup_value(self, node: Node) -> None:
         print("backup_value")
+        #TODO deze functie gaat iedere keer door tot de base node, in latere rondes de huidige 'base' nemen
         if node.parent is not None:
             print("backup_valuefsdjfkdsfjkahfgjksg")
             node.parent.Q += node.Q
             node.parent.N += 1
             self.backup_value(node.parent)
+        else:
+            print("backup_reached none")
 
     """Calculate best move based on the available moves."""
     def calculate_best_move(self, node: Node) -> Tuple[Move, Node]:
