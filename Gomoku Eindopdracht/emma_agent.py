@@ -28,8 +28,8 @@ class Node:
         # Number of visits to current node
         self.N = 0
 
-        # Check if this node is fully expended (win, lose or draw)
-        self.fully_expended = False
+        # Check if this node is fully expended (win, lose or draw) 
+        self.fully_expended = False # is this used????
 
         self.black = black_
 
@@ -74,11 +74,19 @@ class EmmaPlayer:
     """
     #TODO var toevoegen om te checken of een child al volledig ondekt is (finished) zodat niet dubbel werk gedaan wordt
 
+
+    #TODO ergens wordt het bord nog gereferenced, waar het gecopied moet worden + als move al is gedaan dan recursief werkt niet???
+
+
     def __init__(self, black_: bool = True):
         """Constructor for the player."""
         self.black = black_
 
         self.base_node = None
+
+        self.win_in_one = None #TODO is this used????
+
+        print("test")
 
         #self.current_state = None
         #self.current_last_move = None
@@ -91,7 +99,7 @@ class EmmaPlayer:
         self.black = black_
 
     def move(self, state: GameState, last_move: Move, max_time_to_move: int = 1000) -> Move:
-        print("move")
+        #print("move")
         """This is the most important method: the agent will get:
         1) the current state of the game
         2) the last move by the opponent
@@ -113,59 +121,69 @@ class EmmaPlayer:
         max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
         for i in range(0,10000): # for debugging
-        # while time.time() < max_time:
+        #while time.time() < max_time:
             copy_board = copy.deepcopy(state[0])
             copy_gamestate = copy_board, state[1]
-            copy_moves = copy.deepcopy(moves)
-            self.find_spot_to_extend(copy_gamestate, copy_moves, self.base_node)
+            #copy_moves = copy.deepcopy(moves)
+            self.find_spot_to_extend(copy_gamestate, self.base_node)
 
-        best_move, best_child = self.calculate_best_move(self.base_node)
-        self.base_node = best_child
-        return best_move
+        if(self.win_in_one is not None):
+            return self.win_in_one
+        else:
+            best_move, best_child = self.calculate_best_move(self.base_node)
+            self.base_node = best_child
+            return best_move
 
-    def find_spot_to_extend(self, state: GameState, moves: [Move], current_node: Node) -> None:
-        print("expand_base_node")
+    def find_spot_to_extend(self, state: GameState, current_node: Node) -> None:
+        #print("expand_base_node")
 
-        new_move = random.choice(moves) #TODO hier niet random maar een slimmere techniek vinden
+        current_moves = gomoku.valid_moves(state)
 
-        children_moves = []
+        if(len(current_moves) > 0):
 
-        for child in self.base_node.children:
-            children_moves.append(child.last_move)
-        print(f'{children_moves} children movesfjdskfjdskfjdsfkjsd')
+            new_move = current_moves[random.randrange(len(current_moves))] #TODO hier niet random maar een slimmere techniek vinden
 
+            children_moves = []
 
-        #TODO wat als in een finished node komt? of als de tree volledig extended is?
-        if (new_move not in children_moves) and (len(moves) > 0):
+            for child in self.base_node.children:
+                children_moves.append(child.last_move)
+            
+            print(children_moves)
 
-            is_valid, is_winning, new_state = gomoku.move(current_node.current_gamestate, new_move)
+            #TODO wat als in een finished node komt? of als de tree volledig extended is?
+            if (new_move not in children_moves):
 
-            # if win break (dus binnen 1 move, gelijk uitvoeren!)
+                is_valid, is_winning, new_state = gomoku.move(current_node.current_gamestate, new_move)
 
-            if is_winning:
-                print(f'{new_move} wins!')
-                # stop
+                # if(is_winning):
+                #     self.win_in_one = new_move
+                # else:
+                # if not valid panic
 
-            # if not valid panic
+                copy_board = copy.deepcopy(new_state[0])
+                copy_gamestate = copy_board, new_state[1]
 
+                # TODO hier nog een move doen? en wat als die move meteen een win is?
+                new_node = Node(copy_gamestate, False if copy_gamestate[1] % 2 else True, new_move, current_node)
+                current_node.children.append(new_node)
+                #current_moves.remove(new_move)
+                self.roll_down(new_node)
+                
+            elif (new_move in children_moves):
+                new_base_node = self.base_node.children[children_moves.index(new_move)] #move and child index are the same
+                #moves.remove(new_move)
+                print("Hij komt nooit hier????!??!?!??!")
+                self.find_spot_to_extend(new_base_node.current_gamestate, new_base_node)
 
-
-            # TODO hier nog een move doen? en wat als die move meteen een win is?
-            new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
-            current_node.children.append(new_node)
-            moves.remove(new_move)
-            self.roll_down(new_node, moves)
-        elif len(moves) > 0:
-            new_base_node = self.base_node.children[children_moves.index(new_move)] #move and child index are the same
-            moves.remove(new_move)
-            self.find_spot_to_extend(new_base_node.current_gamestate, moves, new_base_node)
+            else:
+                print("hi")
 
         # Function to roll down one node to the bottom
         #self.roll_down(new_gamestate, moves) #TODO choose node to extend
 
     #def roll_out
                                                 #TODO hier moves eruit halen?, first move toevoegen en gelijk uitvoeren
-    def roll_down(self, node_to_roll_down:Node, moves: [Move]) -> None:
+    def roll_down(self, node_to_roll_down:Node) -> None:
         print("roll_down")
         # do move, get if valid, has won and new gamestate
 
@@ -194,8 +212,6 @@ class EmmaPlayer:
             new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
             current_node.children.append(new_node)
 
-            print(f'{current_node.children} HIEERRRRRRRRRR')
-
             # new_node.parent = current_node (is overbodig)
 
             current_moves.remove(new_move)
@@ -220,7 +236,6 @@ class EmmaPlayer:
         print("backup_value")
         #TODO deze functie gaat iedere keer door tot de base node, in latere rondes de huidige 'base' nemen
         if node.parent is not None:
-            print("backup_valuefsdjfkdsfjkahfgjksg")
             node.parent.Q += node.Q
             node.parent.N += 1
             self.backup_value(node.parent)
@@ -233,10 +248,10 @@ class EmmaPlayer:
         best_value = float('-inf')
         best_child = None
 
-        print(f'{node.children} dit is deze zooi')
-
         for child in node.children:
             current_value = child.Q / child.N
+            test1 = child.Q
+            test2 = child.N
             if current_value > best_value:
                 best_value = current_value
                 best_child = child
