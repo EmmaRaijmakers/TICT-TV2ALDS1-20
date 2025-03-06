@@ -114,6 +114,7 @@ class Competition:
 # Now follows the main script for running the competition
 # At present the competition consists of just three random dummy players playing each other
 # When the students submit a player file, they should be entered one by one.
+"""
 game = gomoku.starting_state()
 
 player0 = random_dummy_player()
@@ -128,3 +129,4 @@ nofCompetitions = 1
 for i in range(nofCompetitions):
     comp.play_competition()
     comp.print_scores()
+"""

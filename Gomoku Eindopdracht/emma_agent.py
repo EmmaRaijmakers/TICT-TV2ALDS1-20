@@ -9,14 +9,22 @@ from typing import Tuple
 from GmUtils import GmUtils
 from GmQuickTests import GmQuickTests
 
+from competition import Competition
+from random_agent import random_dummy_player
+#from gomoku_ai_marius1_webclient import gomoku_ai_marius1_webclient
+#from gomoku_ai_random_webclient import gomoku_ai_random_webclient
+
 #TODO black = x = 1
 #TODO white = o = 2
 
-#TODO dingen gedaan om te verbeteren: tree opslaan, finished nodes toegevoegd?
+#TODO dingen gedaan om te verbeteren: tree opslaan, finished nodes toegevoegd, early stop in roll out
 
 class Node:
     def __init__(self, current_gamestate_: GameState, black_: bool, last_move_: Move = None, parent_: Node = None):
         self.current_gamestate = current_gamestate_
+
+        self.black = black_
+
         self.last_move = last_move_
 
         self.parent = parent_
@@ -29,41 +37,7 @@ class Node:
         self.N = 0
 
         # Check if this node is fully expended (win, lose or draw) 
-        self.fully_expended = False # is this used????
-
-        self.black = black_
-
-    # def add_child(self, move: Move, game_state_after_move: GameState) -> Node:
-    #
-    #     # Add given move to a copy of the board
-    #     new_board = copy.deepcopy(self.current_gamestate[0])
-    #     GmUtils.addMoveToBoard(new_board, move, 2 if self.black else 1)
-    #
-    #     # Add new child to current node
-    #     new_gamestate = (new_board, self.current_gamestate[1] + 1)
-    #     self.children.append(Node(new_gamestate, not self.black, game_state_after_move))
-    #
-    #     self.children.append(Node(game_state_after_move, not self.black, ))
-    #
-    #     is_valid, has_won, new_gamestate = gomoku.Move(self.current_gamestate, move)
-    #
-    #
-    #     #
-    #     # if is_valid:
-    #     #     # do things
-    #     #
-    #     #     if has_won:
-    #     #         # finished so,
-    #
-    #
-    #     return Node(self.current_gamestate, move, self.parent)
-    #
-    #
-    # # move up win in tree
-    # def expend_down_once(self, move: Move):
-    #     print("hi")
-    #
-    #     # move input
+        self.fully_expended = False
 
 # This default base player does a random move
 class EmmaPlayer:
@@ -72,24 +46,12 @@ class EmmaPlayer:
     2) it specifies the required methods that will be used by the competition to run
     your player
     """
-    #TODO var toevoegen om te checken of een child al volledig ondekt is (finished) zodat niet dubbel werk gedaan wordt
-
-
-    #TODO ergens wordt het bord nog gereferenced, waar het gecopied moet worden + als move al is gedaan dan recursief werkt niet???
-
 
     def __init__(self, black_: bool = True):
         """Constructor for the player."""
         self.black = black_
 
         self.base_node = None
-
-        self.win_in_one = None #TODO is this used????
-
-        print("test")
-
-        #self.current_state = None
-        #self.current_last_move = None
 
     def new_game(self, black_: bool):
         """At the start of each new game you will be notified by the competition.
@@ -98,175 +60,254 @@ class EmmaPlayer:
         """
         self.black = black_
 
+        self.base_node = None
+
     def move(self, state: GameState, last_move: Move, max_time_to_move: int = 1000) -> Move:
-        #print("move")
         """This is the most important method: the agent will get:
         1) the current state of the game
         2) the last move by the opponent
         3) the available moves you can play (this is a special service we provide ;-) )
         4) the maximum time until the agent is required to make a move in milliseconds [diverging from this will lead to disqualification].
+
+        This function has a time complexity of #TODO
         """
-        #self.current_state = state
-        #self.current_last_move = last_move
 
+        #TODO moves op een manier meegeven aan de functies ipv valid moves aanroepen?
         #moves = GmUtils.getValidMoves(state[0], state[1])
-        moves = gomoku.valid_moves(state)
+        #moves = gomoku.valid_moves(state)
 
-        # create base node
+        # Create a base node if it does not exist yet
         if self.base_node is None:
             self.base_node = Node(state, self.black, last_move)
+        """ Deactivate these comments when running all tests, to make sure every test has a new base node
+        else:
+            self.base_node = Node(state, self.black, last_move)
+        #"""
 
-        # expand tree in max time
-        safe_time = 100  # TODO voor onderzoek experiment met dit
+        # If the last move of the opponent already exists in the tree, set it as the current base node
+        # If not, then create a new node
+
+        #""" Activate these comments when running all tests
+        children_moves = []
+
+        for child in self.base_node.children: # The base node here is still our own last move
+            children_moves.append(child.last_move)
+
+        if last_move in children_moves:
+            self.base_node = self.base_node.children[children_moves.index(last_move)] # Index of the child is the same as the index in children_moves list
+        else:
+            self.base_node = Node(state, self.black, last_move)
+        #"""
+
+        # Remove parents of current base node, so the backup function does not continue further than the current base node
+        if self.base_node.parent is not None:
+            self.base_node.parent = None
+
+        # Expand tree in max time
+        safe_time = 100     # 80 ms still causes disqualification, number higher than 80 ms
         max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
-        for i in range(0,10000): # for debugging
-        #while time.time() < max_time:
-            copy_board = copy.deepcopy(state[0])
-            copy_gamestate = copy_board, state[1]
-            #copy_moves = copy.deepcopy(moves)
-            self.find_spot_to_extend(copy_gamestate, self.base_node)
+        #current_state = copy.deepcopy(state)
 
-        if(self.win_in_one is not None):
-            return self.win_in_one
-        else:
-            best_move, best_child = self.calculate_best_move(self.base_node)
-            self.base_node = best_child
-            return best_move
+        #for i in range(0,10000): # For debugging
+        while time.time() < max_time:
+            self.find_spot_to_expand(state, self.base_node)
+            #self.find_spot_to_extend(copy.deepcopy(current_state), self.base_node)
 
-    def find_spot_to_extend(self, state: GameState, current_node: Node) -> None:
-        #print("expand_base_node")
+        # Calculate best move
+        best_move, best_child = self.calculate_best_move_and_child(self.base_node)
 
+        # Update the base node to our move, so the opponent move might be chosen from the tree in the next move
+        self.base_node = best_child
+
+        return best_move
+
+    def find_spot_to_expand(self, state: GameState, current_node: Node) -> None:
+        """Function to find a spot in the current tree to expend, that is not yet fully expanded.
+
+        This function has a time complexity of #TODO
+        """
         current_moves = gomoku.valid_moves(state)
 
-        if(len(current_moves) > 0):
-
-            new_move = current_moves[random.randrange(len(current_moves))] #TODO hier niet random maar een slimmere techniek vinden
-
-            children_moves = []
-
-            for child in self.base_node.children:
-                children_moves.append(child.last_move)
-            
-            print(children_moves)
-
-            #TODO wat als in een finished node komt? of als de tree volledig extended is?
-            if (new_move not in children_moves):
-
-                is_valid, is_winning, new_state = gomoku.move(current_node.current_gamestate, new_move)
-
-                # if(is_winning):
-                #     self.win_in_one = new_move
-                # else:
-                # if not valid panic
-
-                copy_board = copy.deepcopy(new_state[0])
-                copy_gamestate = copy_board, new_state[1]
-
-                # TODO hier nog een move doen? en wat als die move meteen een win is?
-                new_node = Node(copy_gamestate, False if copy_gamestate[1] % 2 else True, new_move, current_node)
-                current_node.children.append(new_node)
-                #current_moves.remove(new_move)
-                self.roll_down(new_node)
-                
-            elif (new_move in children_moves):
-                new_base_node = self.base_node.children[children_moves.index(new_move)] #move and child index are the same
-                #moves.remove(new_move)
-                print("Hij komt nooit hier????!??!?!??!")
-                self.find_spot_to_extend(new_base_node.current_gamestate, new_base_node)
-
-            else:
-                print("hi")
-
-        # Function to roll down one node to the bottom
-        #self.roll_down(new_gamestate, moves) #TODO choose node to extend
-
-    #def roll_out
-                                                #TODO hier moves eruit halen?, first move toevoegen en gelijk uitvoeren
-    def roll_down(self, node_to_roll_down:Node) -> None:
-        print("roll_down")
-        # do move, get if valid, has won and new gamestate
-
-        # if won return and update node q and n
-
-        # else get next list of valid moves (remove moves of children)
-        # choice random move from this list
-        # recursive into this function with next move and gamestate until base case has been reached.
-
-        # node child met move x, check result, new child of child met random move y, check result ....
-
-        is_winning = False
-        #current_state = state
-        #current_moves = copy.copy(moves) #TODO copy nodig hier??
-        # current_moves = moves  # TODO copy nodig hier??
-        current_moves = gomoku.valid_moves(node_to_roll_down.current_gamestate) # TODO tijdelijk fix, kijk of het anders kan (vergeet niet dat copy ook heel veel tijd kost)
-        current_node = node_to_roll_down
-
-        while (not is_winning) and len(current_moves) > 0:
-            # Choose a random move from the current valid moves and play that move
+        if len(current_moves) > 0:
+            #new_move = current_moves[random.randrange(len(current_moves))] #TODO hier niet random maar een slimmere techniek vinden
             new_move = random.choice(current_moves)
 
-            is_valid, is_winning, new_state = gomoku.move(current_node.current_gamestate, new_move)
+            # Check if the new move already exists in the children of the current base node
+            children_moves = []
 
-            # Create a new node for that move and connect it to the current node
-            new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
-            current_node.children.append(new_node)
+            for child in current_node.children:
+                children_moves.append(child.last_move)
 
-            # new_node.parent = current_node (is overbodig)
+            # If not, create a new node with that move
+            if new_move not in children_moves:
+                new_node, is_winning, draw = self.simulate_move_and_return_new_node(current_node, new_move)
 
+                # If the node is fully expended (win/lose/draw), update the N and Q values
+                if new_node.fully_expended:
+                    new_node.N += 1
+
+                    # If there is a draw, current_node.Q += 0 -> nothing happens
+                    if new_node.black == self.black and not draw:
+                        new_node.Q += 1 # Win for own player
+                    elif new_node.black != self.black and not draw:
+                        new_node.Q -= 1 # Lose for own player
+
+                    # Back up the N and Q values to parent nodes
+                    self.backup_value(new_node, new_node.Q)
+
+                # If the node is not fully expended, roll down the node
+                else:
+                    self.roll_down(new_node)
+
+            # If the move exists in the children, find a new spot to extend, going from the existing child with the move
+            elif new_move in children_moves and not current_node.children[children_moves.index(new_move)].fully_expended:
+                new_base_node = current_node.children[children_moves.index(new_move)] # Move and child index are the same
+                self.find_spot_to_expand(new_base_node.current_gamestate, new_base_node)
+
+    def roll_down(self, node_to_roll_down:Node) -> None:
+        """Function to roll down the node found by the expand function to a final state (win/lose/draw).
+
+        This function has a time complexity of #TODO
+
+        valid moves = n^2
+        while + simulate = n^3
+
+        backupvalue = n^2
+        """
+        current_moves = gomoku.valid_moves(node_to_roll_down.current_gamestate)
+        current_node = node_to_roll_down
+
+        draw = False
+
+        # While the node is not fully expended and there are still moves available, roll down the node to an end state (win/lose/draw)
+        while (not current_node.fully_expended) and len(current_moves) > 0:
+            # Choose a random move from the current valid moves and play that move
+            new_move = random.choice(current_moves)
+            new_node, is_winning, draw = self.simulate_move_and_return_new_node(current_node, new_move)
+
+            # Make sure a move in the roll down cannot be done more than once
             current_moves.remove(new_move)
-            #current_state = new_state
+
             current_node = new_node
 
+        # Update the N and Q values and back them up to parent nodes
         current_node.N +=1
 
-        if not is_winning:
-            # Draw
-            current_node.Q += 0 #TODO doet niks dus weghalen?
-        elif current_node.black == self.black:
-            # Win for own player
-            current_node.Q += 1
-        else:
-            # Lose for own player
-            current_node.Q -= 1
+        # If there is a draw, current_node.Q += 0 -> nothing happens
+        if current_node.black == self.black and not draw:
+            current_node.Q += 1 # Win for own player
+        elif current_node.black != self.black and not draw:
+            current_node.Q -= 1 # Lose for own player
 
-        self.backup_value(current_node)
+        # Back up the N and Q values to parent nodes
+        self.backup_value(current_node, current_node.Q)
 
-    def backup_value(self, node: Node) -> None:
-        print("backup_value")
-        #TODO deze functie gaat iedere keer door tot de base node, in latere rondes de huidige 'base' nemen
+    def simulate_move_and_return_new_node(self, node: Node, move: Move) -> (Node, bool, bool): # new_node, is_winning, draw
+        """Function to simulate a new move and create a new node from it.
+
+        This function has a case time complexity of O(n^2), because most of the code happens instantly, but the 'deepcopy'
+        function and 'in' (which is used twice) both need to go through the whole board. Because the board is 2D
+        this grows exponentially and is O(n^2).
+        """
+
+        # Create a new gamestate from the given move to simulate and create a new node from it.
+        is_valid, is_winning, new_state = gomoku.move(copy.deepcopy(node.current_gamestate), move)
+
+        new_node = Node(new_state, False if new_state[1] % 2 else True, move, node)
+
+        node.children.append(new_node)
+
+        # Check if the new node is a winning move or a draw and set fully expanded to true based on that.
+        if is_winning or not 0 in new_state[0]:
+            new_node.fully_expended = True
+
+        # To be sure, moves should be valid (according to gomoku.valid_moves function).
+        if not is_valid:
+            print("Move was not valid")
+
+        # Return the new node, if the move was a winning move and if the move resulted in a draw
+        return new_node, is_winning, (not 0 in new_state[0]) and (not is_winning)
+
+    def backup_value(self, node: Node, q_value: int) -> None:
+        """Function to back up the value from a child in a finished state (win/lose/draw) to the current base node.
+
+        This function has more parts that influence the time complexity. First, the recursion that backs up a value
+        from the end of the linked list to beginning. It loops once over all items in the linked list (tree) and
+        therefore is linear with O(n). The same is true for the for-loop, which loops once over all the children
+        in the array and is also linear with O(n). Lastly, the 'where' function in the 'valid_moves' function that
+        loops over the 2D board. Because the board is 2D, searching in it is exponentially. Making it O(n^2).
+
+        These three parts run one after the other, so only the highest part is important. That is O(n^2).
+        """
+
+        # If the current base node is not yet reached,
+        # Back up the Q and N value to the parent of the current node and go to the parent node
         if node.parent is not None:
-            node.parent.Q += node.Q
+            node.parent.Q += q_value
             node.parent.N += 1
-            self.backup_value(node.parent)
-        else:
-            print("backup_reached none")
+            self.backup_value(node.parent, q_value)
 
-    """Calculate best move based on the available moves."""
-    def calculate_best_move(self, node: Node) -> Tuple[Move, Node]:
-        print("calculate_best_move")
+        # Back up the fully expended value from the children to the current node
+        done = True
+        for child in node.children:
+            if not child.fully_expended:
+                done = False
+
+        # If all children of the current node are fully expended and all possible children exist
+        # Then the current node is also fully expended
+        if (len(node.children) == gomoku.valid_moves(node.current_gamestate)) and done:
+            node.fully_expended = True
+
+    def calculate_best_move_and_child(self, node: Node) -> Tuple[Move, Node]:
+        """Function to calculate the best move based on the Q and N values in the children.
+
+        This function has a time complexity of O(n), because it has to loop once over all the children
+        that are unsorted to find the best value. This makes this function linear.
+        """
+
         best_value = float('-inf')
         best_child = None
 
+        # Calculate the value of each child and replace the best child and value, if a higher value is found
         for child in node.children:
             current_value = child.Q / child.N
-            test1 = child.Q
-            test2 = child.N
+
             if current_value > best_value:
                 best_value = current_value
                 best_child = child
 
-            print(best_value)
-
         return best_child.last_move, best_child
 
-
-    # This function has a time complexity of O(1) because it instantly returns a value
     def id(self) -> str:
-        """Please return a string here that uniquely identifies your submission e.g., "name (student_id)" """
+        """Please return a string here that uniquely identifies your submission e.g., "name (student_id)."
+
+        This function has a time complexity of O(1), because it instantly returns a value.
+        """
         return "Emma Raijmakers (1784436)"
 
 
 if __name__ == "__main__":
-    p1 = EmmaPlayer(black_=True)
-    GmQuickTests.testWinSelf1(p1)
+    p0 = EmmaPlayer(black_=True)
+
+    """
+    for i in range(5):
+        #GmQuickTests.testWinSelf1(p0)
+        #GmQuickTests.testPreventWinOther1(EmmaPlayer(black_=True))
+        GmQuickTests.doAllTests(p0)
+    """
+
+    # Run 10 competitions between my AI and the random AI
+    game = gomoku.starting_state()
+
+    p1 = random_dummy_player()
+    #p2 = gomoku_ai_marius1_webclient()
+    #p3 = gomoku_ai_random_webclient()
+
+    comp = Competition()
+    comp.register_player(p1)
+    comp.register_player(p0)
+
+    for i in range(10):
+        comp.play_competition()
+        comp.print_scores()
