@@ -17,8 +17,9 @@ from random_agent import random_dummy_player
 #TODO black = x = 1
 #TODO white = o = 2
 
-#TODO dingen gedaan om te verbeteren: tree opslaan, finished nodes toegevoegd, early stop in roll out
+#TODO added to optimise: saving tree between moves, finished nodes added, early stop in roll out, linked list
 
+# Class to save values for each node in the tree
 class Node:
     def __init__(self, current_gamestate_: GameState, black_: bool, last_move_: Move = None, parent_: Node = None):
         self.current_gamestate = current_gamestate_
@@ -36,10 +37,11 @@ class Node:
         # Number of visits to current node
         self.N = 0
 
-        # Check if this node is fully expended (win, lose or draw) 
+        # Checks if this node is fully expended (win, lose or draw) 
         self.fully_expended = False
 
-# This default base player does a random move
+# Class for my Gomoku MCTS player
+# The time complexity analysis is added in the comments of each function
 class EmmaPlayer:
     """This class specifies a player that just does random moves.
     The use of this class is two-fold: 1) You can use it as a base random roll-out policy.
@@ -48,7 +50,10 @@ class EmmaPlayer:
     """
 
     def __init__(self, black_: bool = True):
-        """Constructor for the player."""
+        """Constructor for the player.
+        
+        This function has a time complexity of O(1), because it happens instantly.
+        """
         self.black = black_
 
         self.base_node = None
@@ -57,6 +62,8 @@ class EmmaPlayer:
         """At the start of each new game you will be notified by the competition.
         this method has a boolean parameter that informs your agent whether you
         will play black or white.
+
+        This function has a time complexity of O(1), because it happens instantly.
         """
         self.black = black_
 
@@ -69,12 +76,19 @@ class EmmaPlayer:
         3) the available moves you can play (this is a special service we provide ;-) )
         4) the maximum time until the agent is required to make a move in milliseconds [diverging from this will lead to disqualification].
 
-        This function has a time complexity of #TODO
-        """
+        This function has a few loops. Each time 'in' is used, it loops through a container, which is linear and O(n). The second time 'in'
+        is used, the 'index' function is also called, that looks through the children moves list. However, they happen after each other, 
+        making that part of the code still O(n).
 
-        #TODO moves op een manier meegeven aan de functies ipv valid moves aanroepen?
-        #moves = GmUtils.getValidMoves(state[0], state[1])
-        #moves = gomoku.valid_moves(state)
+        After that, there is the while loop with a function call to the 'find_spot_to_expand' function that has a time complexity of
+        O(n^3) (see that function for further explanation). The while loop keeps looping until the time runs out, making it linear
+        and O(n), adding this to the 'find_spot_to_expand' function call makes a time complexity of O(n^4).
+
+        Lastly, the 'calculate_best_move_and_child' has a time complexity of O(n) (see that function for further information).
+
+        All the above mentioned code parts happen after each other. So, only the biggest time complexity matters for this function
+        and that is O(n^4).
+        """
 
         # Create a base node if it does not exist yet
         if self.base_node is None:
@@ -107,12 +121,9 @@ class EmmaPlayer:
         safe_time = 100     # 80 ms still causes disqualification, number higher than 80 ms
         max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
-        #current_state = copy.deepcopy(state)
-
         #for i in range(0,10000): # For debugging
         while time.time() < max_time:
             self.find_spot_to_expand(state, self.base_node)
-            #self.find_spot_to_extend(copy.deepcopy(current_state), self.base_node)
 
         # Calculate best move
         best_move, best_child = self.calculate_best_move_and_child(self.base_node)
@@ -125,12 +136,19 @@ class EmmaPlayer:
     def find_spot_to_expand(self, state: GameState, current_node: Node) -> None:
         """Function to find a spot in the current tree to expend, that is not yet fully expanded.
 
-        This function has a time complexity of #TODO
+        There are more parts in this function that can possibly influence the time complexity. The 'where' function in the 'valid_moves' 
+        function loops over the 2D board. Because the board is 2D, searching in it is exponentially. Making it O(n^2). The for loop goes
+        through all the children once, making it linear and O(n). Lastly when 'in' is used in this function, it looks through all
+        children in the list, because the list is unsorted. This is also linear and O(n).
+        
+        There are also function calls to other functions. The function that is called with the highest notation is the 
+        'roll_down' function, which is O(n^3). Other function calls and what is mentioned in the previous text, are not 
+        added because these parts of the code happen after each other, so only the biggest matters. Therefore, the time 
+        complexity of this function is O(n^3).
         """
         current_moves = gomoku.valid_moves(state)
 
         if len(current_moves) > 0:
-            #new_move = current_moves[random.randrange(len(current_moves))] #TODO hier niet random maar een slimmere techniek vinden
             new_move = random.choice(current_moves)
 
             # Check if the new move already exists in the children of the current base node
@@ -168,12 +186,13 @@ class EmmaPlayer:
     def roll_down(self, node_to_roll_down:Node) -> None:
         """Function to roll down the node found by the expand function to a final state (win/lose/draw).
 
-        This function has a time complexity of #TODO
+        There are more parts in this function that can possibly influence the time complexity. The 'where' function in the 'valid_moves' 
+        function loops over the 2D board. Because the board is 2D, searching in it is exponentially. Making it O(n^2). The
+        'simulate_move_and_return_new_node' function is O(n^2) (see that function for a further explanation as to why) and because
+        it is called within the while loop, this becomes O(n^3). Lastly, the 'backup_value' function is O(n^2) (see that function for a
+        further explanation why).
 
-        valid moves = n^2
-        while + simulate = n^3
-
-        backupvalue = n^2
+        These three parts run one after the other, so only the highest part is important. That is O(n^3).
         """
         current_moves = gomoku.valid_moves(node_to_roll_down.current_gamestate)
         current_node = node_to_roll_down
@@ -232,13 +251,14 @@ class EmmaPlayer:
     def backup_value(self, node: Node, q_value: int) -> None:
         """Function to back up the value from a child in a finished state (win/lose/draw) to the current base node.
 
-        This function has more parts that influence the time complexity. First, the recursion that backs up a value
-        from the end of the linked list to beginning. It loops once over all items in the linked list (tree) and
-        therefore is linear with O(n). The same is true for the for-loop, which loops once over all the children
-        in the array and is also linear with O(n). Lastly, the 'where' function in the 'valid_moves' function that
+        This function has more parts that can possibly influence the time complexity. First, the recursion that backs 
+        up a value from the end of the linked list to beginning. It loops once over all items in the linked list (tree) 
+        and therefore is linear and O(n). The same is true for the for-loop, which loops once over all the children
+        in the list and is also linear and O(n). Lastly, the 'where' function in the 'valid_moves' function that
         loops over the 2D board. Because the board is 2D, searching in it is exponentially. Making it O(n^2).
 
-        These three parts run one after the other, so only the highest part is important. That is O(n^2).
+        These three parts run one after the other, so only the highest part is important. So the time complexity
+        of this function is O(n^2).
         """
 
         # If the current base node is not yet reached,
