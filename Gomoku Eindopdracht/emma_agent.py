@@ -43,7 +43,7 @@ class Node:
 # Class for my Gomoku MCTS player
 # The time complexity analysis is added in the comments of each function
 class EmmaPlayer:
-    """This class specifies a player that just does random moves.
+    """This class specifies a player that does MCTS.
     The use of this class is two-fold: 1) You can use it as a base random roll-out policy.
     2) it specifies the required methods that will be used by the competition to run
     your player
@@ -76,7 +76,7 @@ class EmmaPlayer:
         3) the available moves you can play (this is a special service we provide ;-) )
         4) the maximum time until the agent is required to make a move in milliseconds [diverging from this will lead to disqualification].
 
-        This function has a few loops. Each time 'in' is used, it loops through a container, which is linear and O(n). The second time 'in'
+        This function has a few loops. Each time 'in' is used, it loops through a list, which is linear and O(n). The second time 'in'
         is used, the 'index' function is also called, that looks through the children moves list. However, they happen after each other, 
         making that part of the code still O(n).
 
@@ -141,7 +141,7 @@ class EmmaPlayer:
         through all the children once, making it linear and O(n). Lastly when 'in' is used in this function, it looks through all
         children in the list, because the list is unsorted. This is also linear and O(n).
         
-        There are also function calls to other functions. The function that is called with the highest notation is the 
+        There are also function calls to other functions. The function that is called with the highest time complexity is the 
         'roll_down' function, which is O(n^3). Other function calls and what is mentioned in the previous text, are not 
         added because these parts of the code happen after each other, so only the biggest matters. Therefore, the time 
         complexity of this function is O(n^3).
@@ -188,9 +188,9 @@ class EmmaPlayer:
 
         There are more parts in this function that can possibly influence the time complexity. The 'where' function in the 'valid_moves' 
         function loops over the 2D board. Because the board is 2D, searching in it is exponentially. Making it O(n^2). The
-        'simulate_move_and_return_new_node' function is O(n^2) (see that function for a further explanation as to why) and because
-        it is called within the while loop, this becomes O(n^3). Lastly, the 'backup_value' function is O(n^2) (see that function for a
-        further explanation why).
+        'simulate_move_and_return_new_node' function is O(n^2) (see that function for further information) and because
+        it is called within the while loop, that loops linear and with O(n), this becomes O(n^3). Lastly, the 'backup_value' function 
+        is O(n^2) (see that function for further information).
 
         These three parts run one after the other, so only the highest part is important. That is O(n^3).
         """
@@ -225,7 +225,7 @@ class EmmaPlayer:
     def simulate_move_and_return_new_node(self, node: Node, move: Move) -> (Node, bool, bool): # new_node, is_winning, draw
         """Function to simulate a new move and create a new node from it.
 
-        This function has a case time complexity of O(n^2), because most of the code happens instantly, but the 'deepcopy'
+        This function has a time complexity of O(n^2), because most of the code happens instantly, but the 'deepcopy'
         function and 'in' (which is used twice) both need to go through the whole board. Because the board is 2D
         this grows exponentially and is O(n^2).
         """
@@ -251,9 +251,9 @@ class EmmaPlayer:
     def backup_value(self, node: Node, q_value: int) -> None:
         """Function to back up the value from a child in a finished state (win/lose/draw) to the current base node.
 
-        This function has more parts that can possibly influence the time complexity. First, the recursion that backs 
-        up a value from the end of the linked list to beginning. It loops once over all items in the linked list (tree) 
-        and therefore is linear and O(n). The same is true for the for-loop, which loops once over all the children
+        This function has more parts that can possibly influence the time complexity. Firstly, the recursion that backs 
+        up a value from the end of the linked list to the beginning. It loops once over all items in a branch of the linked 
+        list (tree) and therefore is linear and O(n). The same is true for the for-loop, which loops once over all the children
         in the list and is also linear and O(n). Lastly, the 'where' function in the 'valid_moves' function that
         loops over the 2D board. Because the board is 2D, searching in it is exponentially. Making it O(n^2).
 
