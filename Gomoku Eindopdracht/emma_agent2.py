@@ -17,6 +17,13 @@ from random_agent import random_dummy_player
 #TODO black = x = 1
 #TODO white = o = 2
 
+#TODO
+#memoisatie eruit slopen
+#check alleen de spots die rondom the huidige stenen staan
+#roll die 8-10x uit
+#utc zieligheidsvalue toevoegen
+#min en plus pas toevoegen bij het berekenen van de value van de node (zie tips in easy test environment)
+
 #TODO added to optimise: saving tree between moves, finished nodes added, early stop in roll out, linked list
 
 # Class to save values for each node in the tree
@@ -90,39 +97,14 @@ class EmmaPlayer:
         and that is O(n^4).
         """
 
-        # Create a base node if it does not exist yet
-        #if self.base_node is None:
-            #self.base_node = Node(state, self.black, last_move)
-        #Deactivate these comments when running all tests, to make sure every test has a new base node
-        #else:
         self.base_node = Node(state, self.black, last_move)
-        #
-
-        # If the last move of the opponent already exists in the tree, set it as the current base node
-        # If not, then create a new node
-
-        #""" Activate these comments when running all tests
-        # children_moves = []
-
-        # for child in self.base_node.children: # The base node here is still our own last move
-        #     children_moves.append(child.last_move)
-
-        # if last_move in children_moves:
-        #     self.base_node = self.base_node.children[children_moves.index(last_move)] # Index of the child is the same as the index in children_moves list
-        # else:
-        #     self.base_node = Node(state, self.black, last_move)
-        #"""
-
-        # Remove parents of current base node, so the backup function does not continue further than the current base node
-        if self.base_node.parent is not None:
-            self.base_node.parent = None
 
         # Expand tree in max time
         safe_time = 100     # 80 ms still causes disqualification, number higher than 80 ms
         max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
-        #for i in range(0,10000): # For debugging
-        while time.time() < max_time:
+        for i in range(0,10000): # For debugging
+        # while time.time() < max_time:
             #new code \/ check also big O notation 
             # new_board = copy.deepcopy(state[0])
             # new_ply = copy.copy(state[1])
@@ -130,17 +112,19 @@ class EmmaPlayer:
 
             # self.find_spot_to_expand(new_state, self.base_node)
 
-            self.find_spot_to_expand(state, self.base_node)
+            node_to_expand = self.find_spot_to_expand(state, self.base_node)
+            #hier node toevoegen aan de tree?
+
+            for i in range(10):
+                val = self.roll_out(node_to_expand)
+                self.backup_value(node_to_expand, val)
 
         # Calculate best move
-        best_move, best_child = self.calculate_best_move_and_child(self.base_node)
-
-        # Update the base node to our move, so the opponent move might be chosen from the tree in the next move
-        self.base_node = best_child
+        best_move = self.calculate_best_move_and_child(self.base_node)
 
         return best_move
-
-    def find_spot_to_expand(self, state: GameState, current_node: Node) -> None:
+        
+    def find_spot_to_expand(self, state: GameState, current_node: Node) -> Node:
         """Function to find a spot in the current tree to expend, that is not yet fully expanded.
 
         There are more parts in this function that can possibly influence the time complexity. The 'where' function in the 'valid_moves' 
@@ -153,46 +137,27 @@ class EmmaPlayer:
         added because these parts of the code happen after each other, so only the biggest matters. Therefore, the time 
         complexity of this function is O(n^3).
         """
+
+        #TODO als de nieuwe node wint, dan doe iets (wat?)
+
         current_moves = gomoku.valid_moves(state)
+            
+        #TODO if n is terminal
 
-        #TODO hier maak een list van alle moves waarvan de children nog niet fully expanded zijn en kies daar random uit????
-
-        if len(current_moves) > 0: #TODO hier niet if len > 0 maar check if alle children fully expended zijn???
+        if current_node.fully_expended == False: #TODO waar fully expended true zetten??
             new_move = random.choice(current_moves)
+            
+            is_valid, is_winning, new_state = gomoku.move(copy.deepcopy(current_node.current_gamestate), move)
+            
+            new_node = Node(new_state, False if new_state[1] % 2 else True, new_move)
+            current_node.children.append(new_node)
 
-            # Check if the new move already exists in the children of the current base node
-            children_moves = []
+            return new_node
+        
+        best_move, best_child = self.calculate_best_move_and_child(current_node)
+        return self.find_spot_to_expand(best_child.current_gamestate, best_child)
 
-            for child in current_node.children:
-                children_moves.append(child.last_move)
-
-            # If not, create a new node with that move
-            if new_move not in children_moves:
-                new_node, is_winning, draw = self.simulate_move_and_return_new_node(current_node, new_move)
-
-                # If the node is fully expended (win/lose/draw), update the N and Q values
-                if new_node.fully_expended:
-                    new_node.N += 1
-
-                    # If there is a draw, current_node.Q += 0 -> nothing happens
-                    if new_node.black == self.black and not draw:
-                        new_node.Q += 1 # Win for own player
-                    elif new_node.black != self.black and not draw:
-                        new_node.Q -= 1 # Lose for own player
-
-                    # Back up the N and Q values to parent nodes
-                    self.backup_value(new_node, new_node.Q)
-
-                # If the node is not fully expended, roll down the node
-                else:
-                    self.roll_down(new_node)
-
-            # If the move exists in the children, find a new spot to extend, going from the existing child with the move
-            elif new_move in children_moves and not current_node.children[children_moves.index(new_move)].fully_expended:
-                new_base_node = current_node.children[children_moves.index(new_move)] # Move and child index are the same
-                self.find_spot_to_expand(new_base_node.current_gamestate, new_base_node)
-
-    def roll_down(self, node_to_roll_down:Node) -> None:
+    def roll_out(self, node_to_roll_down:Node) -> None:
         """Function to roll down the node found by the expand function to a final state (win/lose/draw).
 
         There are more parts in this function that can possibly influence the time complexity. The 'where' function in the 'valid_moves' 
@@ -228,8 +193,8 @@ class EmmaPlayer:
         elif current_node.black != self.black and not draw:
             current_node.Q -= 1 # Lose for own player
 
-        # Back up the N and Q values to parent nodes
-        self.backup_value(current_node, current_node.Q)
+        # # Back up the N and Q values to parent nodes
+        # self.backup_value(current_node, current_node.Q)
 
     def simulate_move_and_return_new_node(self, node: Node, move: Move) -> (Node, bool, bool): # new_node, is_winning, draw
         """Function to simulate a new move and create a new node from it.
