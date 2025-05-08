@@ -1,4 +1,5 @@
 from __future__ import annotations # Needed for type hinting (Node as member in Node)
+import math
 import random
 import numpy as np
 import gomoku
@@ -16,13 +17,6 @@ from random_agent import random_dummy_player
 
 #TODO black = x = 1
 #TODO white = o = 2
-
-#TODO
-#memoisatie eruit slopen
-#check alleen de spots die rondom the huidige stenen staan
-#roll die 8-10x uit
-#utc zieligheidsvalue toevoegen
-#min en plus pas toevoegen bij het berekenen van de value van de node (zie tips in easy test environment)
 
 #TODO added to optimise: saving tree between moves, finished nodes added, early stop in roll out, linked list
 
@@ -65,6 +59,8 @@ class EmmaPlayer:
 
         self.base_node = None
 
+        self.exploration_val = math.sqrt(2) #TODO internet zegt dat dit een goede value is -> sources
+
     def new_game(self, black_: bool):
         """At the start of each new game you will be notified by the competition.
         this method has a boolean parameter that informs your agent whether you
@@ -96,6 +92,14 @@ class EmmaPlayer:
         All the above mentioned code parts happen after each other. So, only the biggest time complexity matters for this function
         and that is O(n^4).
         """
+
+        #TODO wanneer check of fully expended en hoe doorgeven aan andere nodes?
+        #TODO memoisatie eruit slopen
+        #TODO check alleen de spots die rondom the huidige stenen staan
+        #TODO experimenteer met exploration val
+
+        #utc zieligheidsvalue toevoegen
+        #min en plus pas toevoegen bij het berekenen van de value van de node (zie tips in easy test environment)
 
         self.base_node = Node(state, self.black, last_move)
 
@@ -147,7 +151,7 @@ class EmmaPlayer:
         if current_node.fully_expended == False: #TODO waar fully expended true zetten??
             new_move = random.choice(current_moves)
             
-            is_valid, is_winning, new_state = gomoku.move(copy.deepcopy(current_node.current_gamestate), move)
+            is_valid, is_winning, new_state = gomoku.move(copy.deepcopy(current_node.current_gamestate), new_move)
             
             new_node = Node(new_state, False if new_state[1] % 2 else True, new_move)
             current_node.children.append(new_node)
@@ -157,7 +161,7 @@ class EmmaPlayer:
         best_move, best_child = self.calculate_best_move_and_child(current_node)
         return self.find_spot_to_expand(best_child.current_gamestate, best_child)
 
-    def roll_out(self, node_to_roll_down:Node) -> None:
+    def roll_out(self, node_to_roll_down:Node) -> int:
         """Function to roll down the node found by the expand function to a final state (win/lose/draw).
 
         There are more parts in this function that can possibly influence the time complexity. The 'where' function in the 'valid_moves' 
@@ -172,55 +176,75 @@ class EmmaPlayer:
         current_node = node_to_roll_down
 
         draw = False
+        is_winning = False
 
         # While the node is not fully expended and there are still moves available, roll down the node to an end state (win/lose/draw)
         while (not current_node.fully_expended) and len(current_moves) > 0:
             # Choose a random move from the current valid moves and play that move
             new_move = random.choice(current_moves)
-            new_node, is_winning, draw = self.simulate_move_and_return_new_node(current_node, new_move)
+
+            is_valid, is_winning, new_state = gomoku.move(current_node.current_gamestate, new_move)  
+
+            if not is_valid:
+                print("Move not valid")
+
+            new_node = Node(new_state, False if new_state[1] % 2 else True, new_move)
+            current_node.children.append(new_node)
+
+            if is_winning or (not 0 in new_state[0]):
+                new_node.fully_expended = True
+
+            #new_node, is_winning, draw = self.simulate_move_and_return_new_node(current_node, new_move)
 
             # Make sure a move in the roll down cannot be done more than once
             current_moves.remove(new_move)
 
             current_node = new_node
 
-        # Update the N and Q values and back them up to parent nodes
-        current_node.N +=1
+        if not is_winning and (not 0 in current_node.current_gamestate[0]): #draw
+            return 0.5
+        elif is_winning:
+            return 1
+        elif not is_winning:
+            return 0
 
-        # If there is a draw, current_node.Q += 0 -> nothing happens
-        if current_node.black == self.black and not draw:
-            current_node.Q += 1 # Win for own player
-        elif current_node.black != self.black and not draw:
-            current_node.Q -= 1 # Lose for own player
+        # # Update the N and Q values and back them up to parent nodes
+        # current_node.N +=1
 
-        # # Back up the N and Q values to parent nodes
-        # self.backup_value(current_node, current_node.Q)
+        # # If there is a draw, current_node.Q += 0 -> nothing happens
+        # if current_node.black == self.black and not draw:
+        #     current_node.Q += 1 # Win for own player
+        # elif current_node.black != self.black and not draw:
+        #     current_node.Q -= 1 # Lose for own player
 
-    def simulate_move_and_return_new_node(self, node: Node, move: Move) -> (Node, bool, bool): # new_node, is_winning, draw
-        """Function to simulate a new move and create a new node from it.
+        # # # Back up the N and Q values to parent nodes
+        # # self.backup_value(current_node, current_node.Q)
 
-        This function has a time complexity of O(n^2), because most of the code happens instantly, but the 'deepcopy'
-        function and 'in' (which is used twice) both need to go through the whole board. Because the board is 2D
-        this grows exponentially and is O(n^2).
-        """
+    # def simulate_move_and_return_new_node(self, node: Node, move: Move) -> (Node, bool, bool): # new_node, is_winning, draw
+    #     """Function to simulate a new move and create a new node from it.
 
-        # Create a new gamestate from the given move to simulate and create a new node from it.
-        is_valid, is_winning, new_state = gomoku.move(copy.deepcopy(node.current_gamestate), move)
+    #     This function has a time complexity of O(n^2), because most of the code happens instantly, but the 'deepcopy'
+    #     function and 'in' (which is used twice) both need to go through the whole board. Because the board is 2D
+    #     this grows exponentially and is O(n^2).
+    #     """
 
-        new_node = Node(new_state, False if new_state[1] % 2 else True, move, node)
+    #     # Create a new gamestate from the given move to simulate and create a new node from it.
+    #     is_valid, is_winning, new_state = gomoku.move(copy.deepcopy(node.current_gamestate), move)
 
-        node.children.append(new_node)
+    #     new_node = Node(new_state, False if new_state[1] % 2 else True, move, node)
 
-        # Check if the new node is a winning move or a draw and set fully expanded to true based on that.
-        if is_winning or not 0 in new_state[0]:
-            new_node.fully_expended = True
+    #     node.children.append(new_node)
 
-        # To be sure, moves should be valid (according to gomoku.valid_moves function).
-        if not is_valid:
-            print("Move was not valid")
+    #     # Check if the new node is a winning move or a draw and set fully expanded to true based on that.
+    #     if is_winning or not 0 in new_state[0]:
+    #         new_node.fully_expended = True
 
-        # Return the new node, if the move was a winning move and if the move resulted in a draw
-        return new_node, is_winning, (not 0 in new_state[0]) and (not is_winning)
+    #     # To be sure, moves should be valid (according to gomoku.valid_moves function).
+    #     if not is_valid:
+    #         print("Move was not valid")
+
+    #     # Return the new node, if the move was a winning move and if the move resulted in a draw
+    #     return new_node, is_winning, (not 0 in new_state[0]) and (not is_winning)
 
     def backup_value(self, node: Node, q_value: int) -> None:
         """Function to back up the value from a child in a finished state (win/lose/draw) to the current base node.
@@ -238,20 +262,21 @@ class EmmaPlayer:
         # If the current base node is not yet reached,
         # Back up the Q and N value to the parent of the current node and go to the parent node
         if node.parent is not None:
-            node.parent.Q += q_value
             node.parent.N += 1
+            node.parent.Q += q_value
+            
             self.backup_value(node.parent, q_value)
 
-        # Back up the fully expended value from the children to the current node
-        done = True
-        for child in node.children:
-            if not child.fully_expended:
-                done = False
+        # # Back up the fully expended value from the children to the current node
+        # done = True
+        # for child in node.children:
+        #     if not child.fully_expended:
+        #         done = False
 
-        # If all children of the current node are fully expended and all possible children exist
-        # Then the current node is also fully expended
-        if (len(node.children) == gomoku.valid_moves(node.current_gamestate)) and done:
-            node.fully_expended = True
+        # # If all children of the current node are fully expended and all possible children exist
+        # # Then the current node is also fully expended
+        # if (len(node.children) == gomoku.valid_moves(node.current_gamestate)) and done:
+        #     node.fully_expended = True
 
     def calculate_best_move_and_child(self, node: Node) -> Tuple[Move, Node]:
         """Function to calculate the best move based on the Q and N values in the children.
@@ -262,10 +287,17 @@ class EmmaPlayer:
 
         best_value = float('-inf')
         best_child = None
+        factor = 1
+
+        # Calculate the factor by which to multiply the value of a child
+        if node.black == self.black: # Current turn is for own player
+            factor = 1
+        elif node.black != self.black: # Current turn is for opponent
+            factor = -1
 
         # Calculate the value of each child and replace the best child and value, if a higher value is found
         for child in node.children:
-            current_value = child.Q / child.N
+            current_value = (child.Q * factor) / child.N + self.exploration_val * math.sqrt((2 * np.log(node.N)) / child.N)
 
             if current_value > best_value:
                 best_value = current_value
