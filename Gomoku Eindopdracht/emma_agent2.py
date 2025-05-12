@@ -97,6 +97,7 @@ class EmmaPlayer:
         #TODO memoisatie eruit slopen
         #TODO check alleen de spots die rondom the huidige stenen staan
         #TODO experimenteer met exploration val
+        #TODO check alle comments en big O
 
         #utc zieligheidsvalue toevoegen
         #min en plus pas toevoegen bij het berekenen van de value van de node (zie tips in easy test environment)
@@ -258,14 +259,15 @@ class EmmaPlayer:
         These three parts run one after the other, so only the highest part is important. So the time complexity
         of this function is O(n^2).
         """
+        current_node = node
 
         # If the current base node is not yet reached,
         # Back up the Q and N value to the parent of the current node and go to the parent node
-        if node.parent is not None:
-            node.parent.N += 1
-            node.parent.Q += q_value
-            
-            self.backup_value(node.parent, q_value)
+        while current_node is not None:
+            current_node.N += 1
+            current_node.Q += q_value
+
+            current_node = current_node.parent
 
         # # Back up the fully expended value from the children to the current node
         # done = True
@@ -297,6 +299,8 @@ class EmmaPlayer:
 
         # Calculate the value of each child and replace the best child and value, if a higher value is found
         for child in node.children:
+            print(node.N)
+            #node.N = 0 waarom??
             current_value = (child.Q * factor) / child.N + self.exploration_val * math.sqrt((2 * np.log(node.N)) / child.N)
 
             if current_value > best_value:
