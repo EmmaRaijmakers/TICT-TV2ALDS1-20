@@ -176,6 +176,7 @@ class EmmaPlayer:
                 return new_node, False
         
         best_move, best_child = self.calculate_best_move_and_child(current_node)
+        #TODO deze recursie werkt nog niet goed
         return self.find_spot_to_expand(best_child.current_gamestate, best_child)
 
     def roll_out(self, node_to_roll_down:Node) -> int:
@@ -315,6 +316,9 @@ class EmmaPlayer:
 
         # Calculate the value of each child and replace the best child and value, if a higher value is found
         for child in node.children:
+
+            #TODO child.N = 0 waarom???
+            print(child.N)
             current_value = (child.Q * factor) / child.N + self.exploration_val * math.sqrt((2 * np.log(node.N)) / child.N)
 
             if current_value > best_value:
