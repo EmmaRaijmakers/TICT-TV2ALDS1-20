@@ -39,7 +39,9 @@ class Node:
         self.N = 0
 
         # Checks if this node is fully expended (win, lose or draw) 
-        self.fully_expended = False
+        self.fully_expended = False #TODO spelling expanded
+
+        #TODO 2 sets met valid moves van node en valid moves to play (welke kinderen bestaan al?) moves 1x shuffle
 
 # Class for my Gomoku MCTS player
 # The time complexity analysis is added in the comments of each function
@@ -59,7 +61,7 @@ class EmmaPlayer:
 
         self.base_node = None
 
-        self.exploration_val = math.sqrt(2) #TODO internet zegt dat dit een goede value is -> sources
+        self.exploration_val = 1/math.sqrt(2) #TODO deze waarde veranderen nog??
 
     def new_game(self, black_: bool):
         """At the start of each new game you will be notified by the competition.
@@ -119,18 +121,18 @@ class EmmaPlayer:
             # self.find_spot_to_expand(new_state, self.base_node)
 
             node_to_expand, win_in_one = self.find_spot_to_expand(state, self.base_node)
+            #TODO als al een finished node dan meteen val teruggeven/geen roll out
+            #TODO maar wel back up value -> range * win of lose en N + range
 
             if win_in_one:
                 return node_to_expand.last_move
             else:
                 for i in range(10):
-                    val = self.roll_out(node_to_expand)
+                    val = self.roll_out(node_to_expand) 
                     self.backup_value(node_to_expand, val)
 
         # Calculate best move
         best_move, best_child = self.calculate_best_move_and_child(self.base_node)
-        print(best_move)
-
         return best_move
         
     def find_spot_to_expand(self, state: GameState, current_node: Node) -> Tuple[Node, bool]:
@@ -151,15 +153,17 @@ class EmmaPlayer:
 
         current_moves = gomoku.valid_moves(state) #TODO waar valid moves bijhouden en moves verwijderen als ze al gedaan zijn?
 
+        #TODO de valid moves opslaan in de node
+
         #TODO werkt dit zo???
         for child in current_node.children:
             if child.last_move in current_moves:
                 current_moves.remove(child.last_move)
         
-        if len(current_moves) == 0:
+        if len(current_moves) == 0: 
             current_node.fully_expended = True
 
-        if not current_node.fully_expended: #TODO waar fully expended true zetten??
+        if not current_node.fully_expended: #TODO waar fully expended true zetten?? if len == 0
             new_move = random.choice(current_moves)
             
             is_valid, is_winning, new_state = gomoku.move(copy.deepcopy(current_node.current_gamestate), new_move)
@@ -167,7 +171,7 @@ class EmmaPlayer:
             if not is_valid:
                 print("Move was not valid")
 
-            new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
+            new_node = Node(new_state, (new_state[1] % 2) == 1, new_move, current_node)
             current_node.children.append(new_node)
 
             if is_winning and current_node.parent == None:
@@ -175,8 +179,9 @@ class EmmaPlayer:
             else:
                 return new_node, False
         
+
         best_move, best_child = self.calculate_best_move_and_child(current_node)
-        #TODO deze recursie werkt nog niet goed
+        #TODO deze recursie werkt nog niet goed -> de gamestate van best child is fucked
         return self.find_spot_to_expand(best_child.current_gamestate, best_child)
 
     def roll_out(self, node_to_roll_down:Node) -> int:
@@ -195,36 +200,42 @@ class EmmaPlayer:
 
         draw = False
         is_winning = False
+        finished = False
+
+        copy_board = copy.deepcopy(current_node.current_gamestate[0])
+        copy_gamestate = (copy_board, current_node.current_gamestate[1])
 
         # While the node is not fully expended and there are still moves available, roll down the node to an end state (win/lose/draw)
-        while (not current_node.fully_expended) and len(current_moves) > 0: #TODO while s not terminal ???????
+        while (not finished) and len(current_moves) > 0: #TODO while s not terminal ???????
             # Choose a random move from the current valid moves and play that move
             new_move = random.choice(current_moves)
 
-            is_valid, is_winning, new_state = gomoku.move(current_node.current_gamestate, new_move)  
+            is_valid, is_winning, new_state = gomoku.move(copy_gamestate, new_move)  
 
             if not is_valid:
                 print("Move not valid")
 
-            new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
-            current_node.children.append(new_node)
+            #TODO hier niet node toevoegen aan de tree???
+            #new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
+            #current_node.children.append(new_node)
 
             if is_winning or (not 0 in new_state[0]):
-                new_node.fully_expended = True
+                finished = True
 
             #new_node, is_winning, draw = self.simulate_move_and_return_new_node(current_node, new_move)
 
             # Make sure a move in the roll down cannot be done more than once
             current_moves.remove(new_move)
 
-            current_node = new_node
+            #current_node = new_node
 
-        if not is_winning and (not 0 in current_node.current_gamestate[0]): #draw
-            return 0.5
-        elif is_winning:
-            return 1
-        elif not is_winning:
+                            #TODO dit deel is niet nodig???
+        if not is_winning: #and (not 0 in copy_gamestate[0]): #draw
             return 0
+        elif is_winning and (self.black == (new_state[1] % 2 == 0)): #win for self TODO check hier of statement klopt
+            return 1
+        elif is_winning and (self.black != (new_state[1] % 2 == 0)): #lose for self
+            return -1
 
         # # Update the N and Q values and back them up to parent nodes
         # current_node.N +=1
@@ -316,9 +327,6 @@ class EmmaPlayer:
 
         # Calculate the value of each child and replace the best child and value, if a higher value is found
         for child in node.children:
-
-            #TODO child.N = 0 waarom???
-            print(child.N)
             current_value = (child.Q * factor) / child.N + self.exploration_val * math.sqrt((2 * np.log(node.N)) / child.N)
 
             if current_value > best_value:
