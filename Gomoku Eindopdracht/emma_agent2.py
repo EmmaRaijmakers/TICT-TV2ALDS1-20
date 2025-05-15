@@ -38,6 +38,8 @@ class Node:
         # Number of visits to current node
         self.N = 0
 
+        self.moves_to_do = []
+
         # Checks if this node is fully expanded (win, lose or draw) 
         #self.fully_expanded = False
 
@@ -103,6 +105,8 @@ class EmmaPlayer:
         #TODO check alle comments en big O
 
         self.base_node = Node(state, self.black, last_move)
+        self.base_node.moves_to_do = gomoku.valid_moves(state)
+        random.shuffle(self.base_node.moves_to_do)
 
         # Expand tree in max time
         safe_time = 100     # 80 ms still causes disqualification, number higher than 80 ms
@@ -151,24 +155,24 @@ class EmmaPlayer:
         complexity of this function is O(n^3).
         """
 
-        if (GmUtils.isWinningMove(current_node.last_move, current_node.current_gamestate[0])) or (not 0 in current_node.current_gamestate[0]):
+        if (GmUtils.isWinningMove(current_node.last_move, current_node.current_gamestate[0])) or (len(current_node.moves_to_do) == 0):
             return current_node, True, False 
 
-        current_moves = gomoku.valid_moves(state) #TODO waar valid moves bijhouden en moves verwijderen als ze al gedaan zijn?
+        #current_moves = gomoku.valid_moves(state) #TODO waar valid moves bijhouden en moves verwijderen als ze al gedaan zijn?
 
         #TODO de valid moves opslaan in de node
 
         #TODO werkt dit zo???
-        for child in current_node.children:
-            if child.last_move in current_moves:
-                current_moves.remove(child.last_move)
+        # for child in current_node.children:
+        #     if child.last_move in current_moves:
+        #         current_moves.remove(child.last_move)
         
         # if len(current_moves) == 0: 
         #     current_node.fully_expanded = True
 
         #if not current_node.fully_expanded:
-        if not len(current_moves) == 0:
-            new_move = random.choice(current_moves)
+        if not len(current_node.moves_to_do) == 0:
+            new_move = current_node.moves_to_do[0]
             
             is_valid, is_winning, new_state = gomoku.move(copy.deepcopy(current_node.current_gamestate), new_move)
 
@@ -177,6 +181,12 @@ class EmmaPlayer:
 
             new_node = Node(new_state, (new_state[1] % 2) == 1, new_move, current_node)
             current_node.children.append(new_node)
+
+            new_moves_to_do = copy.deepcopy(current_node.moves_to_do) #TODO hier copy of deepcopy???
+            new_moves_to_do.pop(0)
+            new_node.moves_to_do = new_moves_to_do
+
+            current_node.moves_to_do.pop(0)
 
             if is_winning and current_node.parent == None:
                 return new_node, False, True
