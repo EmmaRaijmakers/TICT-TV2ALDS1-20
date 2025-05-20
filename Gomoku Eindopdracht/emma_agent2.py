@@ -6,7 +6,7 @@ import gomoku
 from gomoku import Move, GameState, Board, move
 import copy
 import time
-from typing import Tuple
+from typing import Tuple, List
 from GmUtils import GmUtils
 from GmQuickTests import GmQuickTests
 
@@ -80,6 +80,31 @@ class EmmaPlayer:
 
         self.base_node = None
 
+    def get_surrounding_moves(self, state: GameState) -> List[Move]:
+        board = state[0]
+        ply = state[1]
+        if ply == 1:
+            middle = np.array(np.shape(board)) // 2
+            return [tuple(middle)]
+        else:
+            moves = []
+            places_to_add = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+
+            board_size = len(board[0])
+
+            for i in range(board_size):
+                for j in range(board_size):
+                    if (board[i][j] != 0):
+                        for y, x in places_to_add:
+
+                            y_to_check = i + y
+                            x_to_check = j + x
+
+                            if (0 <= y_to_check < board_size) and (0 <= x_to_check < board_size) and (not (y_to_check, x_to_check) in moves) and (board[y_to_check][x_to_check] == 0):
+                                moves.append((y_to_check, x_to_check))
+
+            return moves
+
     def move(self, state: GameState, last_move: Move, max_time_to_move: int = 1000) -> Move:
         """This is the most important method: the agent will get:
         1) the current state of the game
@@ -108,7 +133,7 @@ class EmmaPlayer:
 
         self.base_node = Node(state, self.black, last_move)
 
-        self.base_node.valid_moves_for_expand = gomoku.valid_moves(state) #TODO update this to only moves around existing moves
+        self.base_node.valid_moves_for_expand = self.get_surrounding_moves(state)
         random.shuffle(self.base_node.valid_moves_for_expand)
 
         self.base_node.valid_moves_for_rollout = gomoku.valid_moves(state)
@@ -117,8 +142,8 @@ class EmmaPlayer:
         safe_time = 100     # 80 ms still causes disqualification, number higher than 80 ms
         max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
-        #for i in range(0,10000): # For debugging
-        while time.time() < max_time:
+        for i in range(0,100000): # For debugging
+        #while time.time() < max_time:
 
             node_to_expand, already_terminal, win_in_one = self.find_spot_to_expand(state, self.base_node)
 
