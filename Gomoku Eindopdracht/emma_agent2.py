@@ -15,7 +15,7 @@ from random_agent import random_dummy_player
 #from gomoku_ai_marius1_webclient import gomoku_ai_marius1_webclient
 #from gomoku_ai_random_webclient import gomoku_ai_random_webclient
 
-#TODO black = x = 1
+#TODO black = x = 1 -> is toch white???
 #TODO white = o = 2
 
 #TODO added to optimise: saving tree between moves, finished nodes added, early stop in roll out, linked list
@@ -127,7 +127,6 @@ class EmmaPlayer:
         """
 
         #TODO memoisatie eruit slopen
-        #TODO check alleen de spots die rondom the huidige stenen staan
         #TODO experimenteer met exploration val
         #TODO check alle comments en big O
 
@@ -135,8 +134,8 @@ class EmmaPlayer:
 
         self.base_node.valid_moves_for_expand = self.get_surrounding_moves(state)
         random.shuffle(self.base_node.valid_moves_for_expand)
-
-        self.base_node.valid_moves_for_rollout = gomoku.valid_moves(state)
+                                                #kijk waar je copies kan vervangen door dit (als je moves niet veranderd, alleen toevoegt/verwijdert)
+        self.base_node.valid_moves_for_rollout = list(self.base_node.valid_moves_for_expand)
 
         # Expand tree in max time
         safe_time = 100     # 80 ms still causes disqualification, number higher than 80 ms
@@ -188,11 +187,8 @@ class EmmaPlayer:
         if (GmUtils.isWinningMove(current_node.last_move, current_node.current_gamestate[0])) or (len(current_node.valid_moves_for_expand) == 0):
             return current_node, True, False 
 
-        #current_moves = gomoku.valid_moves(state) #TODO waar valid moves bijhouden en moves verwijderen als ze al gedaan zijn?
+        #current_moves = gomoku.valid_moves(state)
 
-        #TODO de valid moves opslaan in de node
-
-        #TODO werkt dit zo???
         # for child in current_node.children:
         #     if child.last_move in current_moves:
         #         current_moves.remove(child.last_move)
@@ -245,19 +241,22 @@ class EmmaPlayer:
         current_moves = copy.deepcopy(node_to_roll_down.valid_moves_for_rollout) #TODO is dit sneller dan valid_moves???
         current_node = node_to_roll_down
 
-        draw = False
+        #draw = False
         is_winning = False
-        finished = False
+        #finished = False
 
-        copy_board = copy.deepcopy(current_node.current_gamestate[0])
-        copy_gamestate = (copy_board, current_node.current_gamestate[1])
+        copy_gamestate = copy.deepcopy(current_node.current_gamestate)
+        #copy_gamestate = (copy_board, current_node.current_gamestate[1])
 
         # While the node is not fully expanded and there are still moves available, roll down the node to an end state (win/lose/draw)
-        while (not finished) and len(current_moves) > 0: #TODO while s not terminal ???????
+        #while (not finished) and len(current_moves) > 0: #TODO while s not terminal ???????
+        while (not is_winning) and len(current_moves) > 0:
             # Choose a random move from the current valid moves and play that move
             new_move = random.choice(current_moves)
 
-            is_valid, is_winning, new_state = gomoku.move(copy_gamestate, new_move)  
+            #TODO hier word het board steeds volgezet met tegenstander kleur ipv afwisselen
+            is_valid, is_winning, new_state = gomoku.move(copy_gamestate, new_move) 
+            copy_gamestate = new_state
 
             if not is_valid:
                 print("Move not valid")
@@ -265,8 +264,9 @@ class EmmaPlayer:
             #new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
             #current_node.children.append(new_node)
 
-            if is_winning or (not 0 in new_state[0]):
-                finished = True
+            #TODO dit weghalen en dan hierboven ipv not finished not is_winning
+            # if is_winning or (not 0 in new_state[0]):
+            #     finished = True
 
             #new_node, is_winning, draw = self.simulate_move_and_return_new_node(current_node, new_move)
 
@@ -346,10 +346,15 @@ class EmmaPlayer:
 if __name__ == "__main__":
     p0 = EmmaPlayer(black_=True)
 
+    random.seed(0)
+
     for i in range(1):
         #GmQuickTests.testWinSelf1(p0)
-        #GmQuickTests.testPreventWinOther1(EmmaPlayer(black_=True))
+        random.seed(0)
+        #GmQuickTests.testPreventWinOther1(p0)
+
         GmQuickTests.doAllTests(p0)
+
 
     # # Run 10 competitions between my AI and the random AI
     # game = gomoku.starting_state()
