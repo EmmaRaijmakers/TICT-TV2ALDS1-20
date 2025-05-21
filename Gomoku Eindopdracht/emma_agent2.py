@@ -130,6 +130,8 @@ class EmmaPlayer:
         #TODO experimenteer met exploration val
         #TODO check alle comments en big O
 
+        #TODO check of het kan werken met een leeg board/vol board
+
         self.base_node = Node(state, self.black, last_move)
 
         self.base_node.valid_moves_for_expand = self.get_surrounding_moves(state)
@@ -141,8 +143,8 @@ class EmmaPlayer:
         safe_time = 100     # 80 ms still causes disqualification, number higher than 80 ms
         max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
-        for i in range(0,100000): # For debugging
-        #while time.time() < max_time:
+        #for i in range(0,100000): # For debugging
+        while time.time() < max_time:
 
             node_to_expand, already_terminal, win_in_one = self.find_spot_to_expand(state, self.base_node)
 
@@ -346,27 +348,27 @@ class EmmaPlayer:
 if __name__ == "__main__":
     p0 = EmmaPlayer(black_=True)
 
-    random.seed(0)
+    #random.seed(0)
 
-    for i in range(1):
-        #GmQuickTests.testWinSelf1(p0)
-        random.seed(0)
-        #GmQuickTests.testPreventWinOther1(p0)
+    # for i in range(1):
+    #     #GmQuickTests.testWinSelf1(p0)
+    #     #random.seed(0)
+    #     #GmQuickTests.testPreventWinOther1(p0)
 
-        GmQuickTests.doAllTests(p0)
+    #     GmQuickTests.doAllTests(p0)
 
 
     # # Run 10 competitions between my AI and the random AI
-    # game = gomoku.starting_state()
+    game = gomoku.starting_state()
 
-    # p1 = random_dummy_player()
+    p1 = random_dummy_player()
     # #p2 = gomoku_ai_marius1_webclient()
     # #p3 = gomoku_ai_random_webclient()
 
-    # comp = Competition()
-    # comp.register_player(p1)
-    # comp.register_player(p0)
+    comp = Competition()
+    comp.register_player(p1)
+    comp.register_player(p0)
 
-    # for i in range(10):
-    #     comp.play_competition()
-    #     comp.print_scores()
+    for i in range(10):
+        comp.play_competition()
+        comp.print_scores()
