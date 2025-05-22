@@ -3,7 +3,7 @@ import math
 import random
 import numpy as np
 import gomoku
-from gomoku import Move, GameState, Board, move
+from gomoku import Move, GameState, Board, move, SIZE
 import copy
 import time
 from typing import Tuple, List
@@ -129,6 +129,7 @@ class EmmaPlayer:
         #TODO memoisatie eruit slopen
         #TODO experimenteer met exploration val
         #TODO check alle comments en big O
+        #TODO alle print eruit halen (die niet nodig zijn)
 
         #TODO check of het kan werken met een leeg board/vol board
 
@@ -143,7 +144,7 @@ class EmmaPlayer:
         safe_time = 100     # 80 ms still causes disqualification, number higher than 80 ms
         max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
-        #for i in range(0,100000): # For debugging
+        #for i in range(0,1000): # For debugging
         while time.time() < max_time:
 
             node_to_expand, already_terminal, win_in_one = self.find_spot_to_expand(state, self.base_node)
@@ -186,8 +187,9 @@ class EmmaPlayer:
         complexity of this function is O(n^3).
         """
 
-        if (GmUtils.isWinningMove(current_node.last_move, current_node.current_gamestate[0])) or (len(current_node.valid_moves_for_expand) == 0):
-            return current_node, True, False 
+        if(len(current_node.last_move) != 0):
+            if (GmUtils.isWinningMove(current_node.last_move, current_node.current_gamestate[0])) or (current_node.current_gamestate[1] > (SIZE * SIZE)):
+                return current_node, True, False 
 
         #current_moves = gomoku.valid_moves(state)
 
@@ -210,12 +212,18 @@ class EmmaPlayer:
             new_node = Node(new_state, (new_state[1] % 2) == 1, new_move, current_node)
             current_node.children.append(new_node)
 
-            new_node.valid_moves_for_rollout = copy.deepcopy(current_node.valid_moves_for_rollout)
-            new_node.valid_moves_for_rollout.remove(new_move)
+            # new_node.valid_moves_for_rollout = copy.deepcopy(current_node.valid_moves_for_rollout)
+            # new_node.valid_moves_for_rollout.remove(new_move)
 
-            new_valid_moves = copy.deepcopy(current_node.valid_moves_for_expand) #TODO hier copy of deepcopy???
-            new_valid_moves.pop(0)
+            # new_valid_moves = copy.deepcopy(current_node.valid_moves_for_expand) #TODO hier copy of deepcopy???
+            # new_valid_moves.pop(0)
+            # new_node.valid_moves_for_expand = new_valid_moves
+
+            new_valid_moves = self.get_surrounding_moves(new_state)
+            random.shuffle(new_valid_moves)
             new_node.valid_moves_for_expand = new_valid_moves
+
+            new_node.valid_moves_for_rollout = copy.deepcopy(new_valid_moves)
 
             current_node.valid_moves_for_expand.pop(0)
 
@@ -261,7 +269,7 @@ class EmmaPlayer:
             copy_gamestate = new_state
 
             if not is_valid:
-                print("Move not valid")
+                print("Move was not valid")
 
             #new_node = Node(new_state, False if new_state[1] % 2 else True, new_move, current_node)
             #current_node.children.append(new_node)
@@ -348,17 +356,17 @@ class EmmaPlayer:
 if __name__ == "__main__":
     p0 = EmmaPlayer(black_=True)
 
-    #random.seed(0)
+    # random.seed(0)
 
     # for i in range(1):
     #     #GmQuickTests.testWinSelf1(p0)
-    #     #random.seed(0)
+    #     random.seed(0)
     #     #GmQuickTests.testPreventWinOther1(p0)
 
     #     GmQuickTests.doAllTests(p0)
 
 
-    # # Run 10 competitions between my AI and the random AI
+    # Run 10 competitions between my AI and the random AI
     game = gomoku.starting_state()
 
     p1 = random_dummy_player()
