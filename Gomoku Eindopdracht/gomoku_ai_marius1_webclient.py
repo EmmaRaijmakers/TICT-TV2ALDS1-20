@@ -41,7 +41,7 @@ class gomoku_ai_marius1_webclient:
         # start_time_ns = time.time_ns()
 
         # call the server using POST.
-        url = "https://themave.pythonanywhere.com/make_gomoku_move/ai_marius1"
+        url = "https://pikido.com/gomoku/make_gomoku_move/ai_marius_tng"
         req = requests.post(url, json=dic)
 
         # print(req.json())

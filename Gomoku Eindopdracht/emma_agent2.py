@@ -12,7 +12,9 @@ from GmQuickTests import GmQuickTests
 
 from competition import Competition
 from random_agent import random_dummy_player
-#from gomoku_ai_marius1_webclient import gomoku_ai_marius1_webclient
+#from MartijnAiOud import MartijnAI
+from MartijnAI import MartijnAI
+from gomoku_ai_marius1_webclient import gomoku_ai_marius1_webclient
 #from gomoku_ai_random_webclient import gomoku_ai_random_webclient
 
 # TODO toegevoegde optimalisaties: finished nodes, early stop in roll out, linked list, alleen moves zetten om al bestaande moves,
@@ -182,6 +184,10 @@ class EmmaPlayer:
 
         # Bereken beste move
         best_move, best_child = self.calculate_best_move_and_child(self.base_node, False)
+
+        if best_child.last_move == None:
+            return self.get_surrounding_moves(state)[0] #TODO dit geeft een bug for some reason? als gelijk speelt?? er is iig geen best child
+        
         return best_move
         
     def find_spot_to_expand(self, state: GameState, current_node: Node) -> Tuple[Node, bool, bool]:
@@ -352,22 +358,23 @@ if __name__ == "__main__":
     for i in range(1):
         #GmQuickTests.testWinSelf1(p0)
         random.seed(0)
-        #GmQuickTests.testPreventWinOther1(p0)
+        GmQuickTests.testPreventWinOther2(p0)
 
-        GmQuickTests.doAllTests(p0)
+        #GmQuickTests.doAllTests(p0)
 
 
     # # Run 10 competitions between my AI and the random AI
     # game = gomoku.starting_state()
 
     # p1 = random_dummy_player()
-    # # #p2 = gomoku_ai_marius1_webclient()
-    # # #p3 = gomoku_ai_random_webclient()
+    # p2 = gomoku_ai_marius1_webclient()
+    # # # #p3 = gomoku_ai_random_webclient()
+    p4 = MartijnAI()
 
-    # comp = Competition()
-    # comp.register_player(p1)
-    # comp.register_player(p0)
+    comp = Competition()
+    comp.register_player(p4)
+    comp.register_player(p0)
 
-    # for i in range(10):
-    #     comp.play_competition()
-    #     comp.print_scores()
+    for i in range(10):
+        comp.play_competition()
+        comp.print_scores()
