@@ -13,7 +13,7 @@ from GmQuickTests import GmQuickTests
 from competition import Competition
 from random_agent import random_dummy_player
 #from MartijnAiOud import MartijnAI
-from MartijnAI import MartijnAI
+#from MartijnAI import MartijnAI
 from gomoku_ai_marius1_webclient import gomoku_ai_marius1_webclient
 #from gomoku_ai_random_webclient import gomoku_ai_random_webclient
 
@@ -163,15 +163,15 @@ class EmmaPlayer:
             # Als er een terminal node is gevonden, verander de value van de node gebaseerd op
             # of de eigen speler wint of verliest
             if already_terminal: #TODO kan dit makkelijker???
-                if self.black == (node_to_expand.current_gamestate[1] % 2 == 0): #win voor eigen speler
-                    # Backup het aantal keer als er roll outs worden gedaan
-                    for i in range(self.number_of_rollouts):
-                        self.backup_value(node_to_expand, 1)
-
-                elif self.black != (node_to_expand.current_gamestate[1] % 2 == 0): #lose voor eigen speler
+                if self.black == (node_to_expand.current_gamestate[1] % 2 == 0): #lose voor eigen speler
                     # Backup het aantal keer als er roll outs worden gedaan
                     for i in range(self.number_of_rollouts):
                         self.backup_value(node_to_expand, -1)
+
+                elif self.black != (node_to_expand.current_gamestate[1] % 2 == 0): #win voor eigen speler
+                    # Backup het aantal keer als er roll outs worden gedaan
+                    for i in range(self.number_of_rollouts):
+                        self.backup_value(node_to_expand, 1)
 
             # Als er een node wordt gevonden die gelijk wint, return dan de move van die node    
             elif win_in_one:
@@ -217,6 +217,8 @@ class EmmaPlayer:
         if(len(current_node.last_move) != 0):
             # Return de node terminal is die teriminal is (last move is winning of gelijk gespeeld (hele board staat vol)).
             if (GmUtils.isWinningMove(current_node.last_move, current_node.current_gamestate[0])) or (current_node.current_gamestate[1] > (SIZE * SIZE)):
+                # current_node.valid_moves_for_expand = []
+                # current_node.valid_moves_for_rollout = []
                 return current_node, True, False 
 
         # Als er voor de node nog children zijn om aan te maken
@@ -353,14 +355,14 @@ class EmmaPlayer:
 if __name__ == "__main__":
     p0 = EmmaPlayer(black_=True)
 
-    random.seed(0)
+    # random.seed(0)
 
-    for i in range(1):
+    for i in range(20):
         #GmQuickTests.testWinSelf1(p0)
-        random.seed(0)
+        # random.seed(0)
         GmQuickTests.testPreventWinOther2(p0)
 
-        #GmQuickTests.doAllTests(p0)
+        # GmQuickTests.doAllTests(p0)
 
 
     # # Run 10 competitions between my AI and the random AI
@@ -369,12 +371,12 @@ if __name__ == "__main__":
     # p1 = random_dummy_player()
     # p2 = gomoku_ai_marius1_webclient()
     # # # #p3 = gomoku_ai_random_webclient()
-    p4 = MartijnAI()
+    # # p4 = MartijnAI()
 
-    comp = Competition()
-    comp.register_player(p4)
-    comp.register_player(p0)
+    # comp = Competition()
+    # comp.register_player(p2)
+    # comp.register_player(p0)
 
-    for i in range(10):
-        comp.play_competition()
-        comp.print_scores()
+    # for i in range(10):
+    #     comp.play_competition()
+    #     comp.print_scores()
