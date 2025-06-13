@@ -163,15 +163,20 @@ class EmmaPlayer:
             # Als er een terminal node is gevonden, verander de value van de node gebaseerd op
             # of de eigen speler wint of verliest
             if already_terminal: #TODO kan dit makkelijker???
-                if self.black == (node_to_expand.current_gamestate[1] % 2 == 0): #lose voor eigen speler
+                if (self.black == (node_to_expand.current_gamestate[1] % 2 == 0) and (node_to_expand.current_gamestate[1] <= (SIZE * SIZE))): #lose voor eigen speler en geen draw
                     # Backup het aantal keer als er roll outs worden gedaan
                     for i in range(self.number_of_rollouts):
                         self.backup_value(node_to_expand, -1)
 
-                elif self.black != (node_to_expand.current_gamestate[1] % 2 == 0): #win voor eigen speler
+                elif (self.black != (node_to_expand.current_gamestate[1] % 2 == 0) and (node_to_expand.current_gamestate[1] <= (SIZE * SIZE))): #win voor eigen speler en geen draw
                     # Backup het aantal keer als er roll outs worden gedaan
                     for i in range(self.number_of_rollouts):
                         self.backup_value(node_to_expand, 1)
+
+                elif((node_to_expand.current_gamestate[1] > (SIZE * SIZE))): #draw
+                    # Backup het aantal keer als er roll outs worden gedaan
+                    for i in range(self.number_of_rollouts):
+                        self.backup_value(node_to_expand, 0)
 
             # Als er een node wordt gevonden die gelijk wint, return dan de move van die node    
             elif win_in_one:
@@ -357,26 +362,26 @@ if __name__ == "__main__":
 
     # random.seed(0)
 
-    for i in range(20):
-        #GmQuickTests.testWinSelf1(p0)
-        # random.seed(0)
-        GmQuickTests.testPreventWinOther2(p0)
+    # for i in range(20):
+    #     #GmQuickTests.testWinSelf1(p0)
+    #     # random.seed(0)
+    #     GmQuickTests.testPreventWinOther2(p0)
 
-        # GmQuickTests.doAllTests(p0)
+    #     # GmQuickTests.doAllTests(p0)
 
 
-    # # Run 10 competitions between my AI and the random AI
-    # game = gomoku.starting_state()
+    # Run 10 competitions between my AI and the random AI
+    game = gomoku.starting_state()
 
-    # p1 = random_dummy_player()
-    # p2 = gomoku_ai_marius1_webclient()
-    # # # #p3 = gomoku_ai_random_webclient()
-    # # p4 = MartijnAI()
+    p1 = random_dummy_player()
+    p2 = gomoku_ai_marius1_webclient()
+    # # #p3 = gomoku_ai_random_webclient()
+    # p4 = MartijnAI()
 
-    # comp = Competition()
-    # comp.register_player(p2)
-    # comp.register_player(p0)
+    comp = Competition()
+    comp.register_player(p1)
+    comp.register_player(p0)
 
-    # for i in range(10):
-    #     comp.play_competition()
-    #     comp.print_scores()
+    for i in range(10):
+        comp.play_competition()
+        comp.print_scores()
