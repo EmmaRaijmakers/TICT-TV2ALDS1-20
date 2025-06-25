@@ -139,6 +139,13 @@ class EmmaPlayer:
         van O(n) en is dus niet hoger dan O(n^3) dus de time complexity van deze functie is O(n^3).
         """
 
+        # Expand tree in max time #TODO deze starten voor de shuffle/bovenaan, check wat een goede safe time is, 
+        #TODO profile de functies op tijd
+        safe_time = 100     # 80 ms nog steeds disqualificatie, dus nummer hoger dan 80 ms
+        max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
+
+        #TODO print hoeveel tijd iedere find spot + roll out heeft + nr van roll out
+
         #TODO check alle comments en big O
 
         #TODO check of het kan werken met een leeg board/vol board
@@ -150,10 +157,6 @@ class EmmaPlayer:
         self.base_node.valid_moves_for_expand = self.get_surrounding_moves(state)
         random.shuffle(self.base_node.valid_moves_for_expand)
         self.base_node.valid_moves_for_rollout = list(self.base_node.valid_moves_for_expand)
-
-        # Expand tree in max time
-        safe_time = 100     # 80 ms nog steeds disqualificatie, dus nummer hoger dan 80 ms
-        max_time = time.time() + (max_time_to_move / 1000) - (safe_time / 1000)
 
         #for i in range(0,1000): # Voor debugging
         while time.time() < max_time:
@@ -271,7 +274,8 @@ class EmmaPlayer:
 
         Voor de time complexity van de copy en remove functies is de volgende link gebruikt: https://wiki.python.org/moin/TimeComplexity
         """
-        current_moves = list(node_to_roll_down.valid_moves_for_rollout)
+        current_moves = list(node_to_roll_down.valid_moves_for_rollout) #TODO random shuffle in place, iedere keer bij roll out
+                                                                        #niet moves verwijderen maar door de valid moves loopen
         current_node = node_to_roll_down
 
         is_winning = False
@@ -281,7 +285,7 @@ class EmmaPlayer:
         # Als er nog geen win of draw is in de node, roll down de node tot een end state (win/lose/draw)
         while (not is_winning) and len(current_moves) > 0:
             # Kies een random move van de huidige moves en speel die
-            new_move = random.choice(current_moves)
+            new_move = random.choice(current_moves) #TODO deze random choice boven de while loop zetten?/
 
             is_valid, is_winning, new_state = gomoku.move(copy_gamestate, new_move) 
             copy_gamestate = new_state
@@ -362,26 +366,26 @@ if __name__ == "__main__":
 
     # random.seed(0)
 
-    # for i in range(20):
+    # for i in range(1):
     #     #GmQuickTests.testWinSelf1(p0)
     #     # random.seed(0)
-    #     GmQuickTests.testPreventWinOther2(p0)
+    #     # GmQuickTests.testPreventWinOther2(p0)
 
-    #     # GmQuickTests.doAllTests(p0)
+    #     GmQuickTests.doAllTests(p0)
 
 
     # Run 10 competitions between my AI and the random AI
-    game = gomoku.starting_state()
+    # game = gomoku.starting_state()
 
-    p1 = random_dummy_player()
+    # p1 = random_dummy_player()
     p2 = gomoku_ai_marius1_webclient()
-    # # #p3 = gomoku_ai_random_webclient()
-    # p4 = MartijnAI()
+    # # # #p3 = gomoku_ai_random_webclient()
+    # # p4 = MartijnAI()
 
     comp = Competition()
-    comp.register_player(p1)
+    comp.register_player(p2)
     comp.register_player(p0)
 
-    for i in range(10):
+    for i in range(4):
         comp.play_competition()
         comp.print_scores()
